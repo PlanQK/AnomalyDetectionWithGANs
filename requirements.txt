@@ -1,0 +1,10 @@
+tensorflow==2.1.0
+cirq==0.8.0
+pandas==1.0.5
+scikit-opt==0.5.7
+scikit-optimize==0.7.4
+scikit-learn==0.23.1
+tfq-nightly==0.4.0.dev20200624
+PennyLane==0.10.0
+flask==1.1.1
+tqdm==4.46.1
