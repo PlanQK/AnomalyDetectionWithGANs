@@ -153,16 +153,17 @@ class RandomParametrizedCircuit(ParametrizedCircuitBase):
                 raise ValueError(
                     'Basis needs to be one of the three strings: "X" "Y" "Z"'
                 )
-            bases.append(basis)
+            self.bases.append(basis)
+        self.bases.reshape(int(math.ceil(totalNumCycles / 2)), x * y)
 
-    def getBases(self, bases):
+    def getBases(self):
         bases = []
         for element in self.bases.flatten():
-            if isinstance(element, cirq.rx):
+            if element == cirq.rx:
                 basis = "X"
-            elif isinstance(element, cirq.ry):
+            elif element == cirq.ry:
                 basis = "Y"
-            elif isinstance(element, cirq.rz):
+            elif element == cirq.rz:
                 basis = "Z"
             else:
                 raise ValueError(
@@ -211,6 +212,22 @@ class RandomParametrizedCircuit(ParametrizedCircuitBase):
             self.generateInvCycle(i)
         return self.circuit
 
+    def buildRandomCircuit(self):
+        # state input
+        for i in range(len(self.inputParams)):
+            self.circuit.append(cirq.rx(self.inputParams[i] * np.pi).on(self.qubits[i]))
+
+        # if odd then number of cycles then add an empty layer at the front
+        if self.totalNumCycles % 2:
+            self.generateCycle(-1)
+
+        for i in range(int(self.totalNumCycles / 2)):
+            self.generateCycle(i, random=True)
+
+        for i in range(int(self.totalNumCycles / 2)):
+            self.generateCycle(i, random=True)
+        return self.circuit
+
     def generateInvCycle(self, cyclePos):
         # layer of entangling gates
         if cyclePos != 0:
@@ -238,7 +255,7 @@ class RandomParametrizedCircuit(ParametrizedCircuitBase):
                 ).on(self.qubits[qubitID])
             )
 
-    def generateCycle(self, cyclePos):
+    def generateCycle(self, cyclePos, random=False):
         add = 0
         if self.totalNumCycles % 2:
             add = 1
@@ -248,7 +265,7 @@ class RandomParametrizedCircuit(ParametrizedCircuitBase):
                     self.controlParams[cyclePos + add][qubitID]
                 ).on(self.qubits[qubitID])
             )  # layer of entangling gates
-        if cyclePos == int(self.totalNumCycles / 2) - 1:
+        if not random and cyclePos == int(self.totalNumCycles / 2) - 1:
             return
         for qubitID in range(len(self.qubits)):
             # TODO: moment
@@ -385,7 +402,7 @@ class completeRotationCircuit(RandomParametrizedCircuit):
 
 
 class littleEntanglement(RandomParametrizedCircuit):
-    def generateCycle(self, cyclePos):
+    def generateCycle(self, cyclePos, random=False):
         add = 0
         if self.totalNumCycles % 2:
             add = 1
@@ -395,7 +412,7 @@ class littleEntanglement(RandomParametrizedCircuit):
                     self.controlParams[cyclePos + add][qubitID]
                 ).on(self.qubits[qubitID])
             )  # layer of entangling gates
-        if cyclePos == int(self.totalNumCycles / 2) - 1:
+        if not random and cyclePos == int(self.totalNumCycles / 2) - 1:
             return
         if cyclePos % 2:
             for qubitID in range(len(self.qubits)):
@@ -457,7 +474,7 @@ class semiClassical(RandomParametrizedCircuit):
                 self.bases[cyclePos + add][qubitID](
                     self.controlParams[cyclePos + add][qubitID]
                 ).on(self.qubits[qubitID])
-            )  # layer of entangling gates
+            )
 
     def generateInvCycle(self, cyclePos):
         for qubitID in range(len(self.qubits)):

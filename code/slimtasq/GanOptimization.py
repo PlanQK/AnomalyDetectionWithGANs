@@ -110,7 +110,7 @@ class GanOptimization:
         # Override costs and params of previous run (if any)
         self.costs_opt = []
         self.params_opt = []
-
+        print("before optimiztation")
         tic = time.perf_counter()
         for _ in tqdm(range(self.n_steps), desc=self.__str__()):
             self.step_counter += 1
@@ -121,6 +121,7 @@ class GanOptimization:
                 self.customParams.update({"stepNumber": self.step_counter})
                 self.params_opt.append(self.customParams.copy())
         toc = time.perf_counter()
+        print("after optimization")
 
         self.runtime["total"] = toc - tic
         if self.n_steps != 0:
