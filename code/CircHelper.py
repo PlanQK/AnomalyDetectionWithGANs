@@ -5,17 +5,17 @@ import cirq
 
 
 class StatePrepCircuit:
-     """Base class for state preparations.
+    """Base class for state preparations.
     """
+
     def __init__(self):
         self.randomBases = np.random.choice([cirq.rx, cirq.ry], 500)
 
     def createSimpleStatePrepCircuit(self, parameters):
         """Generate a simple state where the parameters corespond to the
-    coefficient of the |1> state for each qubit individually.
-    
-    Parameters need to be in [-1,1].
-    """
+        coefficient of the |1> state for each qubit individually.
+        Parameters need to be in [-1,1].
+        """
         # transform that the mapping is linear
         parameters = np.arcsin(paremeters)
         circuit = cirq.Circuit()
@@ -60,6 +60,8 @@ class ParametrizedCircuitBase:
 
     def __init__(self, x=3, y=3, totalNumCycles=3):
         self.qubits = cirq.GridQubit.rect(x, y)
+        self.x = x
+        self.y = y
         self.circuit = cirq.Circuit()
         self.totalNumCycles = totalNumCycles
         self.controlParams = []
@@ -136,6 +138,38 @@ class RandomParametrizedCircuit(ParametrizedCircuitBase):
         )
         self.bases = self.bases.reshape(int(math.ceil(totalNumCycles / 2)), x * y)
         self.circuit = cirq.Circuit()
+
+    def setBases(self, bases):
+        assert len(bases) == int(math.ceil(self.totalNumCycles / 2) * self.x * self.y)
+        self.bases = []
+        for element in bases:
+            if element == "X":
+                basis = cirq.rx
+            elif element == "Y":
+                basis = cirq.ry
+            elif element == "Z":
+                basis = cirq.rz
+            else:
+                raise ValueError(
+                    'Basis needs to be one of the three strings: "X" "Y" "Z"'
+                )
+            bases.append(basis)
+
+    def getBases(self, bases):
+        bases = []
+        for element in self.bases.flatten():
+            if isinstance(element, cirq.rx):
+                basis = "X"
+            elif isinstance(element, cirq.ry):
+                basis = "Y"
+            elif isinstance(element, cirq.rz):
+                basis = "Z"
+            else:
+                raise ValueError(
+                    "The bases are only allowed to consist of the cirq Rotations: rx, ry, rz"
+                )
+            bases.append(basis)
+        return bases
 
     def generateInitialParameters(self):
         startingParameters = (

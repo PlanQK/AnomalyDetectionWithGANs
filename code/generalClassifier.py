@@ -70,34 +70,17 @@ class Classifier:
 
     @staticmethod
     def loadClassifier():
-        data = {}
-        qc = QuantumClassifier()
-        qc.ansatz.generator.load_weights("model/generator_weights")
-        qc.ansatz.discriminator.load_weights("model/discriminator_weights")
-        qc.ansatz.anoGanModel.load_weights("model/anoGan_weights")
-        with open("model/other_parameters") as json_file:
-            data = json.load(json_file)
-            threshold = data["threshold"]
-
-        qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
-        qc.anoGan = ThresholdWrapper(qc.anoGan)
-        qc.anoGan._threshold = threshold
-        return qc
+        raise NotImplementedError("Please use the quantum classifier class")
 
     def save(self):
-        data = {"threshold": self.anoGan._threshold}
-        self.ansatz.generator.save_weights("model/generator_weights")
-        self.ansatz.discriminator.save_weights("model/discriminator_weights")
-        self.ansatz.anoGanModel.save_weights("model/anoGan_weights")
-        with open("model/other_parameters", "w") as json_file:
-            json.dump(data, json_file)
+        raise NotImplementedError("Please use the quantum classifier class")
 
 
 class QuantumClassifier(Classifier):
-    def __init__(self, n_steps=1200):
+    def __init__(self, n_steps=1200, bases=None):
         super().__init__(n_steps)
         self.ansatz = AnoGanAnsatz("Quantum classifier")
-        self.ansatz.generator = self.getGenerator()
+        self.ansatz.generator = self.getGenerator(bases)
         self.ansatz.discriminator = self.getDiscriminator()
         self.ansatz.trueInputSampler = NoLabelSampler()
         self.ansatz.latentVariableSampler = generatorInputSamplerTFQ(self.latent_dim)
@@ -120,17 +103,19 @@ class QuantumClassifier(Classifier):
             updateInterval=n_steps + 10,
         )
 
-    def getGenerator(self):
-        rpc = littleEntanglement(self.latent_dim, 1, 1)
-        circuit = rpc.buildCircuit()
+    def getGenerator(self, bases):
+        self.rpc = littleEntanglement(self.latent_dim, 1, 1)
+        if bases:
+            self.rpc.setBases(bases)
+        circuit = self.rpc.buildCircuit()
         # build generator
         circuitInput = tf.keras.Input(shape=(), dtype=tf.string, name="circuitInput")
         circuitInputParam = tf.keras.Input(
-            shape=len(rpc.inputParams), name="circuitInputParam"
+            shape=len(self.rpc.inputParams), name="circuitInputParam"
         )
         paramsInput = tf.keras.Input(shape=1, name="paramsInput")
         paramsInput2_layer = tf.keras.layers.Dense(
-            np.prod(rpc.controlParams.shape),
+            np.prod(self.rpc.controlParams.shape),
             input_shape=(1,),
             activation="sigmoid",
             name="paramsInputDense",
@@ -138,7 +123,7 @@ class QuantumClassifier(Classifier):
 
         paramsInput2 = paramsInput2_layer(paramsInput)
 
-        sampler = tfq.layers.ControlledPQC(circuit, rpc.getReadOut())
+        sampler = tfq.layers.ControlledPQC(circuit, self.rpc.getReadOut())
         concat = tf.concat([circuitInputParam, paramsInput2], axis=1)
         expectation = sampler([circuitInput, concat])
 
@@ -154,8 +139,8 @@ class QuantumClassifier(Classifier):
         # set the weights of the quantum circuit according to arxiv:1903.05076
         paramsInput2_layer.set_weights(
             [
-                np.array([rpc.generateInitialParameters()]),
-                np.zeros((np.prod(rpc.controlParams.shape),)),
+                np.array([self.rpc.generateInitialParameters()]),
+                np.zeros((np.prod(self.rpc.controlParams.shape),)),
             ]
         )
         return generator
@@ -175,3 +160,28 @@ class QuantumClassifier(Classifier):
             inputs=[circuitInput2, oneInput],
             outputs=[inverse_weight * genOutput, anoGan_disc_weight * discOutput],
         )
+
+    @staticmethod
+    def loadClassifier():
+        data = {}
+        with open("model/other_parameters") as json_file:
+            data = json.load(json_file)
+            threshold = data["threshold"]
+            bases = data["bases"]
+        qc = QuantumClassifier(bases=bases)
+        qc.ansatz.generator.load_weights("model/generator_weights")
+        qc.ansatz.discriminator.load_weights("model/discriminator_weights")
+        qc.ansatz.anoGanModel.load_weights("model/anoGan_weights")
+
+        qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
+        qc.anoGan = ThresholdWrapper(qc.anoGan)
+        qc.anoGan._threshold = threshold
+        return qc
+
+    def save(self):
+        data = {"threshold": self.anoGan._threshold, "bases": self.rpc.getBases()}
+        self.ansatz.generator.save_weights("model/generator_weights")
+        self.ansatz.discriminator.save_weights("model/discriminator_weights")
+        self.ansatz.anoGanModel.save_weights("model/anoGan_weights")
+        with open("model/other_parameters", "w") as json_file:
+            json.dump(data, json_file)
