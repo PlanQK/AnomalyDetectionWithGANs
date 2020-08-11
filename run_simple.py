@@ -2,7 +2,7 @@ import sys
 import os
 from code import QuantumClassifier
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "4"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 
 errorMsg = """
 Usage: run_me.py train|predict

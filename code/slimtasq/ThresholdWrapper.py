@@ -33,6 +33,14 @@ class ThresholdWrapper(Model):
         self._threshold = thr
 
     def predict(self, X):
+        """Convert a float like output into a binary choice using the threshold.
+
+        Args:
+            X (np.array): data to be classified
+
+        Returns:
+            np.array: Array of binary output variables
+        """
         # decorates the predict function to return the correct format
         # output is normally in {-1, 1} and not {0,1}
         result = np.array(

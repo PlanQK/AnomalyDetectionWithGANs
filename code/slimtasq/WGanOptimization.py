@@ -18,6 +18,21 @@ class WGanOptimization:
         interface="autograd",
         **kwargs,
     ):
+        """Gnerate a Wasserstein Gan optimization object. This implementation
+        is supposed to remedy some of the training difficulties of Gans (e.g.
+        vanishing gradients).
+
+        Args:
+            opt (tf.keras.optimizer): Optimizer to perform gradient descent with.
+            name (str): A name to identify this object among others.
+            n_steps (int, optional): Optimization steps. Defaults to 600.
+            batchSize (int, optional): Number of training samples for each optimization step. Defaults to 64.
+            discriminatorIterations (int, optional): How often the discriminator is trained for each generator optimization. Defaults to 5.
+            updateInterval (int, optional): How often are debug costs and metrics (in optimization steps). Defaults to 50.
+            opt_args (dict, optional): Additional arguments for the optimizer. Defaults to {}.
+            step_args (dict, optional): Additional arguments for the step function. Defaults to {}.
+            interface (str, optional): Unused, remnant from pennylane. Defaults to "autograd".
+        """
         self.opt = opt
         self.name = name
         self.n_steps = n_steps
@@ -35,10 +50,21 @@ class WGanOptimization:
             self.customParams = kwargs.pop("customParams")
 
     def reset(self):
+        """
+        Reset the internal optimizer state in order to
+        start a new independent optimization run.
+        """
         self.step_counter = 0
         super().reset()
 
     def _step(self, cost):
+        """Perform a single step of the optimization.
+        This step consists of several updates for the discriminator parameters
+        and a single update for the generator parameters.
+
+        Args:
+            cost (GanCost): Metrics for the performance of the gan. Main requirement is the GanAnsatz stored in the cost object.
+        """
         real_images = cost.ansatz.trueInputSampler(self.batchSize)
         for i in range(self.discriminatorIterations):
             # Get the latent vector
@@ -78,6 +104,15 @@ class WGanOptimization:
         )
 
     def run(self, cost, additional_step_args=None):
+        """Run the optimization over many steps.
+
+        Args:
+            cost (GanCost): Metrics for the performance of the gan.
+            additional_step_args (dict, optional): unused here. Defaults to None.
+
+        Returns:
+            tuple(list, list): A touple containing the costs snapshots and parameter snapshots. The parameters are empty in this implementation.
+        """
         self.status = "running"
         # Override costs and params of previous run (if any)
         self.costs_opt = []
@@ -102,19 +137,45 @@ class WGanOptimization:
 
     @staticmethod
     def discriminatorLoss(realSampleDiscriminatorOutput, fakeSampleDiscriminatorOutput):
+        """Calculate the loss for the discriminator optimization steps.
+
+        Args:
+            realSampleDiscriminatorOutput (tf.tensor): output from the real sample
+            fakeSampleDiscriminatorOutput (tf.tensor): output from the generated samples
+
+        Returns:
+            tf.tensor: value for the loss
+        """
+
         real_loss = tf.reduce_mean(realSampleDiscriminatorOutput)
         fake_loss = tf.reduce_mean(fakeSampleDiscriminatorOutput)
         return fake_loss - real_loss
 
     @staticmethod
     def generatorLoss(fakeSampleDiscriminatorOutput):
+        """Calculaete the loss for the generator optimization step.
+
+        Args:
+            fakeSampleDiscriminatorOutput (tf.tensor): discriminator output from a generated sample
+
+        Returns:
+            tf.tensor: value for the loss
+        """
         return -tf.reduce_mean(fakeSampleDiscriminatorOutput)
 
     def gradient_penalty(self, cost, realSample, fakeSample):
-        """ Calculates the gradient penalty (a method to maintain lipschitz continuity).
+        """Calculate the gradient penalty. This is an addition to the
+        loss function to ensure lipschitz continuity. This loss contribution
+        is calculated from an interpolated image between generated
+        and real sample.
 
-        This loss is calculated on an interpolated image
-        and added to the discriminator loss.
+        Args:
+            cost (GanCost): required for the GanAnsatz
+            realSample (list): batch of real samples
+            fakeSample (list): batch of generated samples
+
+        Returns:
+            tf.tensor: gradient penalty contribution to the loss
         """
         # get the interplated image
         alpha = tf.random.uniform(
@@ -135,7 +196,11 @@ class WGanOptimization:
         return gp
 
     def _to_dict(self):
-        # TODO: add ansatz to repr_dict
+        """Return the class as a serialized dictionary.
+
+        Returns:
+            [dict]: Dictionary representation of the object
+        """
         repr_dict = {
             "__class__": self.__class__.__name__,
             "__module__": self.__module__,
@@ -158,16 +223,16 @@ class WGanOptimization:
 
     @classmethod
     def _from_dict(cls, dct):
-        """[summary]
+        """Create a new object from a serialized dict.
 
         Args:
-            dct ([type]): [description]
+            dct (dict): serialized form of a previous object
 
         Raises:
-            ValueError: [description]
+            ValueError: dct is missing elements or has invalid parameters.
 
         Returns:
-            [type]: [description]
+            WGanOptimization: The new de-serialized object.
         """
         opt = dct.pop("opt")
         name = dct.pop("name")

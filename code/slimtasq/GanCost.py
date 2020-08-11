@@ -9,20 +9,36 @@ import json
 
 class GanCost:
     def __init__(self, ansatz, **kwargs):
+        """Create the cost object.
+
+        Args:
+            ansatz (AnoGanAnsatz): This object contains the required structure for the AnoGan ansatz.
+        """
         ansatz.checkAnsatz()
         self.ansatz = ansatz
         self.init_params = []
 
     def calculateMetrics(self, opt):
+        """Calculate the metrics. For GANs there are no clear metrics.
+        Therefore, this method returns 5 samples from the generator.
+
+        Args:
+            opt (tf.keras.optimizer): [unused] Optimizer required for the AnoGan architecture e.g. Adam optimizer.
+
+        Returns:
+            dict: dict containing the results for the different metrics.
+        """
         inputData = self.ansatz.latentVariableSampler(5)
         snapshots = self.ansatz.generator.predict(inputData)
         return {"samples": snapshots}
 
     def get_config(self):
-        # Overriding TensorFlow get_config is required if __init__ has additional args
-        # For serialization to work with TensorFlow we first serialize Tasq objects via
-        # our custom JSONEncoder. Then we convert the JSON string to a dictionary of
-        # standard JSON types with json.loads.
+        """Return the parameters needed to create a copy of this object.
+        Overridden method from JSONEncoder.
+
+        Returns:
+            dict: parameters
+        """
         config = {"ansatz": self.ansatz._to_dict(), "init_params": self.init_params}
         return config
 
@@ -30,10 +46,10 @@ class GanCost:
         return "GanCost " + str(self.ansatz)
 
     def _to_dict(self):
-        """[1mmary]
+        """Return the class as a serialized dictionary.
 
         Returns:
-            [dict]: Dictionary representation of the class
+            dict: Dictionary representation of the object
         """
         repr_dict = {
             "__class__": self.__class__.__name__,

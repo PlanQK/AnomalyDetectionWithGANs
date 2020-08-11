@@ -51,9 +51,8 @@ class Classifier:
     def getDiscriminator(self):
         discSeq = tf.keras.Sequential()
         discSeq.add(tf.keras.layers.Dense(self.num_features))
-        discSeq.add(tf.keras.layers.Dropout(0.25))
         discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
-        discSeq.add(tf.keras.layers.Dense(self.latent_dim))
+        discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
 
         discInput = tf.keras.layers.Input(shape=(self.num_features))
         features = discSeq(discInput)

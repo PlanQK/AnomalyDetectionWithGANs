@@ -18,6 +18,19 @@ class GanOptimization:
         interface="autograd",
         **kwargs,
     ):
+        """Gnerate a standard Gan optimization object. This class might be plagued by vanishing gradients. 
+
+        Args:
+            opt (tf.keras.optimizer): Optimizer to perform gradient descent with.
+            name (str): A name to identify this object among others.
+            n_steps (int, optional): Optimization steps. Defaults to 600.
+            batchSize (int, optional): Number of training samples for each optimization step. Defaults to 64.
+            discriminatorIterations (int, optional): How often the discriminator is trained for each generator optimization. Defaults to 5.
+            updateInterval (int, optional): How often are debug costs and metrics (in optimization steps). Defaults to 50.
+            opt_args (dict, optional): Additional arguments for the optimizer. Defaults to {}.
+            step_args (dict, optional): Additional arguments for the step function. Defaults to {}.
+            interface (str, optional): Unused, remnant from pennylane. Defaults to "autograd".
+        """
         super().__init__(opt, name, n_steps, opt_args=opt_args, step_args=step_args)
         self.opt = opt
         self.name = name
@@ -32,10 +45,21 @@ class GanOptimization:
             self.customParams = kwargs.pop("customParams")
 
     def reset(self):
+        """
+        Reset the internal optimizer state in order to
+        start a new independent optimization run.
+        """
         self.step_counter = 0
         super().reset()
 
     def _step(self, cost):
+        """Perform a single step of the optimization.
+        This step consists of several updates for the discriminator parameters
+        and a single update for the generator parameters.
+
+        Args:
+            cost (GanCost): Metrics for the performance of the gan. Main requirement is the GanAnsatz stored in the cost object.
+        """
         real_images = cost.ansatz.trueInputSampler(self.batchSize)
         for i in range(self.discriminatorIterations):
             # Get the latent vector
@@ -73,6 +97,15 @@ class GanOptimization:
         )
 
     def run(self, cost, additional_step_args=None):
+        """Run the optimization over many steps.
+
+        Args:
+            cost (GanCost): Metrics for the performance of the gan.
+            additional_step_args (dict, optional): unused here. Defaults to None.
+
+        Returns:
+            tuple(list, list): A touple containing the costs snapshots and parameter snapshots. The parameters are empty in this implementation.
+        """
         self.status = "running"
         # Override costs and params of previous run (if any)
         self.costs_opt = []
@@ -98,6 +131,15 @@ class GanOptimization:
     def discriminatorLoss(
         self, realSampleDiscriminatorOutput, fakeSampleDiscriminatorOutput
     ):
+        """Calculate the loss for the discriminator optimization steps.
+
+        Args:
+            realSampleDiscriminatorOutput (tf.tensor): output from the real sample
+            fakeSampleDiscriminatorOutput (tf.tensor): output from the generated samples
+
+        Returns:
+            tf.tensor: value for the loss
+        """
         valid = tf.convert_to_tensor(np.ones((self.batchSize, 1)), dtype=tf.float32)
         fake = tf.convert_to_tensor(np.zeros((self.batchSize, 1)), dtype=tf.float32)
         real_loss = tf.reduce_mean(valid - realSampleDiscriminatorOutput)
@@ -105,10 +147,22 @@ class GanOptimization:
         return fake_loss + real_loss
 
     def generatorLoss(self, fakeSampleDiscriminatorOutput):
+        """Calculaete the loss for the generator optimization step.
+
+        Args:
+            fakeSampleDiscriminatorOutput (tf.tensor): discriminator output from a generated sample
+
+        Returns:
+            tf.tensor: value for the loss
+        """
         return -tf.reduce_mean(fakeSampleDiscriminatorOutput)
 
     def _to_dict(self):
-        # TODO: add ansatz to repr_dict
+        """Return the class as a serialized dictionary.
+
+        Returns:
+            [dict]: Dictionary representation of the object
+        """
         repr_dict = {
             "__class__": self.__class__.__name__,
             "__module__": self.__module__,
@@ -130,16 +184,16 @@ class GanOptimization:
 
     @classmethod
     def _from_dict(cls, dct):
-        """[summary]
+        """Create a new object from a serialized dict.
 
         Args:
-            dct ([type]): [description]
+            dct (dict): serialized form of a previous object
 
         Raises:
-            ValueError: [description]
+            ValueError: dct is missing elements or has invalid parameters.
 
         Returns:
-            [type]: [description]
+            GanOptimization: The new de-serialized object.
         """
         opt = dct.pop("opt")
         name = dct.pop("name")

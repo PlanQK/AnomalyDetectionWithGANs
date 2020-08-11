@@ -5,6 +5,8 @@ import cirq
 
 
 class StatePrepCircuit:
+     """Base class for state preparations.
+    """
     def __init__(self):
         self.randomBases = np.random.choice([cirq.rx, cirq.ry], 500)
 

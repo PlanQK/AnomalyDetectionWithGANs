@@ -10,6 +10,11 @@ class GanAnsatz:
     """
 
     def __init__(self, name):
+        """Creates the GanAnsatz object
+
+        Args:
+            name (str): The name will be used to identify the current object among multiple simulations.
+        """
         self._name = name
         self._performCheck = True
         self._generator = None
@@ -50,6 +55,15 @@ class GanAnsatz:
         self._discriminator = discriminator
 
     def checkAnsatz(self):
+        """Perform a check if all elements are set in this Ansatz object.
+        If this fails the GAN architecture is likely to fail as well in training and in calassification.
+
+        Raises:
+            RuntimeError: An element is not set.
+        
+        Return:
+            Nothing, but if no exception occured everything is in order.
+        """
         if self._performCheck is False:
             return
         errorMsg = ""
@@ -67,6 +81,12 @@ class GanAnsatz:
             )
 
     def get_config(self):
+        """Return the parameters needed to create a copy of this object.
+        Overridden method from JSONEncoder.
+
+        Returns:
+            dict: parameters
+        """
         repr_dict = {}
         toSerialize = [
             "_latentVariableSampler",
@@ -82,6 +102,11 @@ class GanAnsatz:
         return repr_dict
 
     def _to_dict(self):
+        """Return the serialization of this object.
+
+        Returns:
+            dict: serialized form of this object
+        """
         repr_dict = {
             "__class__": self.__class__.__name__,
             "__module__": self.__module__,
@@ -92,16 +117,16 @@ class GanAnsatz:
 
     @classmethod
     def _from_dict(cls, dct):
-        """[summary]
+        """Create a new object from a serialized dict.
 
         Args:
-            dct ([type]): [description]
+            dct (dict): serialized form of a previous object
 
         Raises:
-            ValueError: [description]
+            ValueError: dct is missing elements or has invalid parameters.
 
         Returns:
-            [type]: [description]
+            GanAnsatz: The new de-serialized object.
         """
         name = dct.pop("name")
         toDeserialize = [
@@ -126,14 +151,16 @@ class GanAnsatz:
 
 
 class AnoGanAnsatz(GanAnsatz):
-    """
-    This Ansatz stores the unique network data / characteristics for anomaly detection in the AnoGan framework.
+    """ This Ansatz stores the unique network data / characteristics for anomaly detection in the AnoGan framework.
     This abstraction allows the use of classical TF, quantum TFQ, and quantum Pennylane implementations.
-
-    This ansatz requires the AnoGanCost class as cost function.
     """
 
     def __init__(self, name):
+        """Creates the GanAnsatz object
+
+        Args:
+            name (str): The name will be used to identify the current object among multiple simulations.
+        """
         super().__init__(name)
         self._testSampler = None
         self._anoGanModel = None
@@ -174,6 +201,15 @@ class AnoGanAnsatz(GanAnsatz):
         self._trainingDataSampler = sampler
 
     def checkAnsatz(self):
+        """Perform a check if all elements are set in this Ansatz object.
+        If this fails the GAN architecture is likely to fail as well in training and in calassification.
+
+        Raises:
+            RuntimeError: An element is not set.
+        
+        Return:
+            Nothing, but if no exception occured everything is in order.
+        """
         if self._performCheck is False:
             return
         errorMsg = ""
@@ -199,6 +235,12 @@ class AnoGanAnsatz(GanAnsatz):
             )
 
     def get_config(self):
+        """Return the parameters needed to create a copy of this object.
+        Overridden method from JSONEncoder.
+
+        Returns:
+            dict: parameters
+        """
         repr_dict = {}
         toSerialize = [
             # "_anoGanInputs",
@@ -218,6 +260,11 @@ class AnoGanAnsatz(GanAnsatz):
         return repr_dict
 
     def _to_dict(self):
+        """Return the class as a serialized dictionary.
+
+        Returns:
+            [dict]: Dictionary representation of the object
+        """
         repr_dict = {
             "__class__": self.__class__.__name__,
             "__module__": self.__module__,
@@ -228,16 +275,16 @@ class AnoGanAnsatz(GanAnsatz):
 
     @classmethod
     def _from_dict(cls, dct):
-        """[summary]
+        """Create a new object from a serialized dict.
 
         Args:
-            dct ([type]): [description]
+            dct (dict): serialized form of a previous object
 
         Raises:
-            ValueError: [description]
+            ValueError: dct is missing elements or has invalid parameters.
 
         Returns:
-            [type]: [description]
+            GanAnsatz: The new de-serialized object.
         """
         name = dct.pop("name")
         toDeserialize = [
