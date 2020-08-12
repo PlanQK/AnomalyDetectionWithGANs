@@ -2,7 +2,7 @@ import sys
 import os
 from code import QuantumClassifier
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+# os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 
 errorMsg = """
 Usage: run_me.py train|predict
@@ -15,7 +15,7 @@ Arguments:
 def main():
     assert len(sys.argv) == 2, errorMsg
     if sys.argv[1] == "train":
-        qc = QuantumClassifier(n_steps=1200)
+        qc = QuantumClassifier(n_steps=2000)
         qc.train()
         qc.save()
     elif sys.argv[1] == "predict":

@@ -154,7 +154,10 @@ class RandomParametrizedCircuit(ParametrizedCircuitBase):
                     'Basis needs to be one of the three strings: "X" "Y" "Z"'
                 )
             self.bases.append(basis)
-        self.bases.reshape(int(math.ceil(totalNumCycles / 2)), x * y)
+        self.bases = np.array(self.bases)
+        self.bases = self.bases.reshape(
+            int(math.ceil(self.totalNumCycles / 2)), self.x * self.y
+        )
 
     def getBases(self):
         bases = []
