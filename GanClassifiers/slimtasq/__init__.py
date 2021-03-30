@@ -4,3 +4,4 @@ from .GanCost import GanCost
 from .ThresholdWrapper import ThresholdWrapper
 from .GanOptimization import GanOptimization
 from .WGanOptimization import WGanOptimization
+from .EnvironmentVariableManager import EnvironmentVariableManager

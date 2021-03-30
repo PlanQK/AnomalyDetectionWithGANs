@@ -5,6 +5,7 @@ from .ThresholdWrapper import ThresholdWrapper
 import tensorflow as tf
 import tensorflow.keras.backend as K
 import json
+from .EnvironmentVariableManager import EnvironmentVariableManager
 
 
 class AnoGanCost:
@@ -40,18 +41,25 @@ class AnoGanCost:
         anoGan = AnoWGan(self.ansatz, opt)
         anoGan = ThresholdWrapper(anoGan)
 
-        X, Y = self.ansatz.trainingDataSampler()
+        envMgr = EnvironmentVariableManager()
+
+        X, Y = self.ansatz.trainingDataSampler(
+            batchSize=envMgr["thresholdSearchBatchSize"]
+        )
 
         SPACE = [skopt.space.Real(0.5, 3.2, name="thr")]
 
         @skopt.utils.use_named_args(SPACE)
         def objective(thr):
             anoGan.threshold = thr
-            predicted = anoGan.predict(X)
+            predicted = anoGan.predict(X, envMgr["latentVariableOptimizationIterations"])
             return -sklearn.metrics.f1_score(Y.to_numpy(), predicted)
 
         results = skopt.forest_minimize(
-            objective, SPACE, n_calls=10, n_random_starts=10
+            objective,
+            SPACE,
+            n_calls=envMgr["thresholdSearchIterations"],
+            n_random_starts=10,
         )
         anoGan._threshold = results.x[0]
         self.optimized_f1 = results.fun

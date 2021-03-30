@@ -16,6 +16,7 @@ from .slimtasq import (
     AnoGanCost,
     AnoWGan,
     ThresholdWrapper,
+    EnvironmentVariableManager,
 )
 from . import CircHelper
 
@@ -42,21 +43,23 @@ class generatorInputSamplerTFQ(generatorInputSampler):
 
 
 class Classifier:
-    def __init__(self, n_steps=1200, totalNumCycles=4, bases=None):
+    def __init__(self, bases=None):
         self.anoGan = None
         self.num_features = get_feature_length()
-
+        envMgr = EnvironmentVariableManager()
         # only allow the number of qubits to be between 1-9
         self.latent_dim = max(1, int(self.num_features / 3))
         self.latent_dim = min(9, self.latent_dim)
-        self.totalNumCycles = totalNumCycles
-        self.n_steps = n_steps
+        self.totalNumCycles = envMgr["totalDepth"]
 
         self.opt = WGanOptimization(
             tf.keras.optimizers.Adam(0.0002, beta_1=0.5),
             "WGAN",
-            n_steps=n_steps,
-            updateInterval=n_steps + 10,
+            n_steps=envMgr["trainingSteps"],
+            updateInterval=envMgr["trainingSteps"] + 10,
+            batchSize=envMgr["batchSize"],
+            discriminatorIterations=envMgr["discriminatorIterations"],
+            gpWeight=envMgr["gpWeight"],
         )
 
         self.ansatz = AnoGanAnsatz(self.__class__.__name__)
@@ -132,8 +135,8 @@ class Classifier:
 
 
 class ClassicalClassifier(Classifier):
-    def __init__(self, n_steps=1200, totalNumCycles=4, bases=None):
-        super().__init__(n_steps, totalNumCycles=totalNumCycles, bases=bases)
+    def __init__(self, bases=None):
+        super().__init__(bases=bases)
 
         self.ansatz.trueInputSampler = NoLabelSampler()
         self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
@@ -145,14 +148,12 @@ class ClassicalClassifier(Classifier):
 
     def getGenerator(self, _):
         genSeq = tf.keras.Sequential()
-        genSeq.add(tf.keras.layers.Dense(9, input_dim=self.latent_dim))
-        genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-        genSeq.add(tf.keras.layers.Dense(9, input_dim=self.latent_dim))
-        genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-        genSeq.add(tf.keras.layers.Dense(16, input_dim=self.latent_dim))
-        genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-        genSeq.add(tf.keras.layers.Dense(self.num_features, activation="sigmoid"))
         noise = tf.keras.layers.Input(shape=(self.latent_dim))
+        for layer in range(self.totalNumCycles):
+            genSeq.add(tf.keras.layers.Dense(9, input_dim=self.latent_dim))
+            genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+
+        genSeq.add(tf.keras.layers.Dense(self.num_features, activation="sigmoid"))
         return tf.keras.Model(noise, genSeq(noise))
 
     def getAnoGan(self, generator, discriminator, anoGan_disc_weight=1):
@@ -206,8 +207,8 @@ class ClassicalClassifier(Classifier):
 
 
 class TfqSimulator(Classifier):
-    def __init__(self, n_steps=1200, bases=None):
-        super().__init__(n_steps)
+    def __init__(self, bases=None):
+        super().__init__(bases=bases)
         self.ansatz.trueInputSampler = NoLabelSampler()
         self.ansatz.latentVariableSampler = generatorInputSamplerTFQ(self.latent_dim)
         self.ansatz.getTestSample = LabelSampler()
@@ -280,15 +281,17 @@ class TfqSimulator(Classifier):
 
 
 class PennylaneSimulator(Classifier):
-    def __init__(self, n_steps=1200, bases=None):
-        super().__init__(n_steps)
-
+    def __init__(self, bases=None):
+        self.latent_dim = min(9, self.latent_dim)
+        self.totalNumCycles = totalNumCycles
         # Pennylane specifics
         self.device = qml.device("default.qubit", wires=self.latent_dim)
 
         self.circuitObject = PennylaneHelper.LittleEntanglementIdentity(
             self.latent_dim, self.totalNumCycles
         )
+
+        super().__init__(bases=bases)
 
         self.ansatz.trueInputSampler = NoLabelSampler()
         self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
@@ -346,8 +349,9 @@ class PennylaneIbmQ(PennylaneSimulator):
     """Run the Pennylane QWGan with the IBM Quantum backend
     """
 
-    def __init__(self, n_steps=1200, bases=None):
-        super().__init__(n_steps=n_steps, bases=bases)
-        # TODO
+    def __init__(selfbases=None):
+        self.latent_dim = min(9, self.latent_dim)
         self.device = qml.device("default.qubit", wires=self.latent_dim)
+        super().__init__(bases=bases)
+        # TODO
         self.cost = AnoGanCost(self.ansatz)
