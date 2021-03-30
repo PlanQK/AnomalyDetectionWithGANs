@@ -43,6 +43,8 @@ class WGanOptimization:
         self.updateInterval = updateInterval
         self.gpWeight = gpWeight
         self.interface = ""
+        self.g_loss = 0
+        self.d_loss = 0
         if "gpWeight" in opt_args:
             self.gpWeight = opt_args["gpWeight"]
         self.customParams = {}
@@ -79,7 +81,7 @@ class WGanOptimization:
                 d_cost = self.discriminatorLoss(real_logits, fake_logits)
                 gp = self.gradient_penalty(cost, real_images, fake_images)
                 d_loss = d_cost + gp * self.gpWeight
-
+                self.d_loss = float(d_loss)
             # Get the gradients w.r.t the discriminator loss
             d_gradient = tape.gradient(
                 d_loss, cost.ansatz.discriminator.trainable_variables
@@ -97,6 +99,7 @@ class WGanOptimization:
             )
             gen_img_logits = cost.ansatz.discriminator(generated_images, training=True)
             g_loss = self.generatorLoss(gen_img_logits)
+            self.g_loss = float(g_loss)
 
         gen_gradient = tape.gradient(g_loss, cost.ansatz.generator.trainable_variables)
         self.opt.apply_gradients(
@@ -124,6 +127,8 @@ class WGanOptimization:
             self._step(cost)
             if (self.step_counter % self.updateInterval) == 0:
                 cost_curr = cost.calculateMetrics(self.opt)
+                cost_curr["generator loss"] = self.g_loss
+                cost_curr["discriminator loss"] = self.d_loss
                 self.costs_opt.append(cost_curr)
                 self.customParams.update({"stepNumber": self.step_counter})
                 self.params_opt.append(self.customParams.copy())
@@ -146,7 +151,6 @@ class WGanOptimization:
         Returns:
             tf.tensor: value for the loss
         """
-
         real_loss = tf.reduce_mean(realSampleDiscriminatorOutput)
         fake_loss = tf.reduce_mean(fakeSampleDiscriminatorOutput)
         return fake_loss - real_loss

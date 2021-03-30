@@ -1,25 +1,41 @@
 import sys
 import os
-from code import QuantumClassifier
-
-# os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+import GanClassifiers
 
 errorMsg = """
-Usage: run_me.py train|predict
+Usage: run_me.py classical|tfqSimulator|pennylaneSimulator|pennylaneIBMQ train|predict (--optArgs)
 Arguments:
+    classical: Run the AnoGAN with a classical generator. This is the fastest option.
+    tfqSimulator: Run a simulated version of the quantum AnoGAN with Tensorflow Quantum.
+    qulacsSimulator: Run a simulated version of the quantum AnoGAN with Pennylane and the Qulacs simulator backend.
+    pennylaneIBMQ: Run on the real hardware with Pennylane and its IBM Q backend.
+
     train: Trains the network. Requires that input-data/trainingData.csv exists.
     predict: Returns the outlier prediction. Requires that input-data/prediction.csv exists
 """
 
+ganBackends = {
+    "classical": GanClassifier.ClassicalClassifier,
+    "tfqSimulator": GanClassifiers.TfqSimulator,
+    "qulacsSimulator": GanClassifiers.PennylaneSimulator,
+    "pennylaneIBMQ": GanClassifiers.PennylaneIbmQ,
+}
+
 
 def main():
-    assert len(sys.argv) == 2, errorMsg
-    if sys.argv[1] == "train":
-        qc = QuantumClassifier(n_steps=2000)
+    assert len(sys.argv) >= 3, errorMsg
+    assert sys.argv[1] in ganBackends.keys(), errorMsg
+    assert sys.argv[2] in ["train", "predict"], errorMsg
+
+    classifierClass = ganBackends[sys.argv[1]]
+    trainingSteps = 1
+
+    if sys.argv[2] == "train":
+        qc = classifierClass(n_steps=trainingSteps)
         qc.train()
         qc.save()
-    elif sys.argv[1] == "predict":
-        qc = QuantumClassifier.loadClassifier()
+    elif sys.argv[2] == "predict":
+        qc = classifierClass.loadClassifier()
         print(qc.predict())
     else:
         print(errorMsg)

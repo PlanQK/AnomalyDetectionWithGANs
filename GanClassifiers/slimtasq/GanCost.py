@@ -60,6 +60,19 @@ class GanCost:
 
     @classmethod
     def from_config(cls, dct):
+        """Create a new object from a serialized dict.
+
+        TODO: check if this function is really needed
+
+        Args:
+            dct (dict): serialized form of a previous object
+
+        Raises:
+            ValueError: dct is missing elements or has invalid parameters.
+
+        Returns:
+            GanCost: The new de-serialized object.
+        """
         # TensorFlow needs us to deserialize our custom objects first
         ansatz = dct.pop("ansatz")
         ansatz_obj = json.loads(json.dumps(ansatz), cls=PennylaneJSONDecoder)
@@ -68,5 +81,16 @@ class GanCost:
 
     @classmethod
     def _from_dict(cls, dct):
+        """Create a new object from a serialized dict.
+
+        Args:
+            dct (dict): serialized form of a previous object
+
+        Raises:
+            ValueError: dct is missing elements or has invalid parameters.
+
+        Returns:
+            GanCost: The new de-serialized object.
+        """
         obj = cls(**dct)
         return obj

@@ -142,7 +142,6 @@ class GanOptimization:
             tf.tensor: value for the loss
         """
         valid = tf.convert_to_tensor(np.ones((self.batchSize, 1)), dtype=tf.float32)
-        fake = tf.convert_to_tensor(np.zeros((self.batchSize, 1)), dtype=tf.float32)
         real_loss = tf.reduce_mean(valid - realSampleDiscriminatorOutput)
         fake_loss = tf.reduce_mean(fakeSampleDiscriminatorOutput)
         return fake_loss + real_loss

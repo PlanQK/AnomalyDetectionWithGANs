@@ -4,6 +4,7 @@ import skopt
 from .ThresholdWrapper import ThresholdWrapper
 import tensorflow as tf
 import tensorflow.keras.backend as K
+import json
 
 
 class AnoGanCost:
@@ -36,8 +37,8 @@ class AnoGanCost:
             ThresholdWrapper: Optimized AnoGan object, ready for anomaly detection.
         """
         print("Starting threshold optimization")
-        anoWGan = AnoWGan(self.ansatz, opt)
-        anoWGan = ThresholdWrapper(anoWGan)
+        anoGan = AnoWGan(self.ansatz, opt)
+        anoGan = ThresholdWrapper(anoGan)
 
         X, Y = self.ansatz.trainingDataSampler()
 
@@ -45,17 +46,18 @@ class AnoGanCost:
 
         @skopt.utils.use_named_args(SPACE)
         def objective(thr):
-            anoWGan.threshold = thr
-            predicted = anoWGan.predict(X)
+            anoGan.threshold = thr
+            predicted = anoGan.predict(X)
             return -sklearn.metrics.f1_score(Y.to_numpy(), predicted)
 
-        results = skopt.forest_minimize(
-            objective, SPACE, n_calls=10, n_random_starts=10
-        )
-        anoWGan._threshold = results.x[0]
-        print(f"Threshold {anoWGan.threshold}")
+        # results = skopt.forest_minimize(
+        #    objective, SPACE, n_calls=10, n_random_starts=10
+        # )
+        anoGan._threshold = 1.0  # results.x[0]
+        self.optimized_f1 = 0.0  # results.fun
+        print(f"Threshold {anoGan.threshold}")
         print("finished threshold optimization")
-        return anoWGan
+        return anoGan
 
     def calculateMetrics(self, opt):
         """Calculate the metrics. This first creates a new AnoGan object and optimizes it.
@@ -78,6 +80,8 @@ class AnoGanCost:
             "recall": sklearn.metrics.recall_score(Y, prediction),
             "average precision": sklearn.metrics.average_precision_score(Y, prediction),
             "f1 score": sklearn.metrics.f1_score(Y, prediction),
+            "optimized score": self.optimized_f1,
+            "threshold": model._threshold,
         }
 
     @staticmethod
@@ -121,7 +125,7 @@ class AnoGanCost:
 
 class AnoWGan:
     """
-    Helper class that makes out of a trained GAN an AnoGAN.
+    Helper class that turns a trained GAN into an AnoGAN.
     It relies on the correct definition of the ansatz.
     """
 
@@ -158,7 +162,10 @@ class AnoWGan:
             discriminatorOutput = self.ansatz.discriminator.predict(singleInputSample)
             lossValue = self.network.fit(
                 self.ansatz.anoGanInputs,
-                [singleInputSample, discriminatorOutput],
+                [
+                    singleInputSample / self.ansatz.discriminatorWeight,
+                    discriminatorOutput,
+                ],
                 batch_size=1,
                 epochs=iterations,
                 verbose=0,

@@ -1,1 +1,0 @@
-from .generalClassifier import QuantumClassifier

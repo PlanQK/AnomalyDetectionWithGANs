@@ -1,0 +1,5 @@
+**/testVenv/**
+**/__pycache__/**
+**.pyc
+**/model/**
+**/input-data/**

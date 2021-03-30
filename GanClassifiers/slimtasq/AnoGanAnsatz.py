@@ -3,6 +3,42 @@ import importlib
 import tensorflow as tf
 
 
+def serialize_element(element):
+    """Serialize an element that might not be in the correct format.
+
+    Args:
+        element (any type): element to serialize
+
+    Returns:
+        dict: result of the serialization
+    """
+    success = False
+    encoder = tasq.serialize.PennylaneJSONEncoder()
+    result = {}
+    if isinstance(element, (str, int, list)):
+        return element
+    try:
+        result = encoder.default(element)
+    except Exception as e:
+        try:
+            newElement = {"new": element}
+            result = encoder.default(element)
+            return result["new"]
+        except Exception as e:
+            print(
+                f"Standard serialization does not for '{element}' with the following error:"
+            )
+            print(e)
+
+    # instead get the weights
+    try:
+        result = {"weights": element.get_weights()}
+        return result
+    except Exception as e:
+        pass
+    return result
+
+
 class GanAnsatz:
     """
     This Ansatz stores the unique network data / characteristics for general Gans.
@@ -146,6 +182,7 @@ class GanAnsatz:
                     f"WARNING: {name} could not load element {element} due to following error:"
                 )
                 print(e)
+                # this allows tasqw to continue if not everything is loaded -> should be removed once everything supports serialization
         obj._performCheck = False
         return obj
 
@@ -166,6 +203,7 @@ class AnoGanAnsatz(GanAnsatz):
         self._anoGanModel = None
         self._anoGanInputs = None
         self._trainingDataSampler = None
+        self._discriminatorWeight = 1
 
     @property
     def getTestSample(self):
@@ -174,6 +212,14 @@ class AnoGanAnsatz(GanAnsatz):
     @property
     def anoGanModel(self):
         return self._anoGanModel
+
+    @property
+    def discriminatorWeight(self):
+        return self._discriminatorWeight
+
+    @discriminatorWeight.setter
+    def discriminatorWeight(self, weight):
+        self._discriminatorWeight = weight
 
     @anoGanModel.setter
     def anoGanModel(self, network):
@@ -288,8 +334,8 @@ class AnoGanAnsatz(GanAnsatz):
         """
         name = dct.pop("name")
         toDeserialize = [
-            "_anoGanInputs",
-            "_anoGanModel",
+            # "_anoGanInputs",
+            # "_anoGanModel",
             "_discriminator",
             "_generator",
             "_latentVariableSampler",
@@ -308,5 +354,6 @@ class AnoGanAnsatz(GanAnsatz):
                     f"WARNING: {name} could not load element {element} due to following error:"
                 )
                 print(e)
+                # this allows tasq to continue if not everything is loaded -> should be removed once everything supports serialization
         obj._performCheck = False
         return obj
