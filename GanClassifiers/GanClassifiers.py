@@ -42,7 +42,7 @@ class generatorInputSamplerTFQ(generatorInputSampler):
 
 
 class Classifier:
-    def __init__(self, n_steps=1200, totalNumCycles=4):
+    def __init__(self, n_steps=1200, totalNumCycles=4, bases=None):
         self.anoGan = None
         self.num_features = get_feature_length()
 
@@ -52,7 +52,6 @@ class Classifier:
         self.totalNumCycles = totalNumCycles
         self.n_steps = n_steps
 
-        self.cost = AnoGanCost(self.ansatz)
         self.opt = WGanOptimization(
             tf.keras.optimizers.Adam(0.0002, beta_1=0.5),
             "WGAN",
@@ -133,8 +132,8 @@ class Classifier:
 
 
 class ClassicalClassifier(Classifier):
-    def __init__(self, n_steps, bases):
-        super().__init__(n_steps, bases)
+    def __init__(self, n_steps=1200, totalNumCycles=4, bases=None):
+        super().__init__(n_steps, totalNumCycles=totalNumCycles, bases=bases)
 
         self.ansatz.trueInputSampler = NoLabelSampler()
         self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
@@ -142,7 +141,68 @@ class ClassicalClassifier(Classifier):
 
         self.ansatz.trainingDataSampler = LabelSampler()
         self.ansatz.anoGanInputs = [np.array([[1]])]
-        self.ansatz.checkAnsatz()
+        self.cost = AnoGanCost(self.ansatz)
+
+    def getGenerator(self, _):
+        genSeq = tf.keras.Sequential()
+        genSeq.add(tf.keras.layers.Dense(9, input_dim=self.latent_dim))
+        genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+        genSeq.add(tf.keras.layers.Dense(9, input_dim=self.latent_dim))
+        genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+        genSeq.add(tf.keras.layers.Dense(16, input_dim=self.latent_dim))
+        genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+        genSeq.add(tf.keras.layers.Dense(self.num_features, activation="sigmoid"))
+        noise = tf.keras.layers.Input(shape=(self.latent_dim))
+        return tf.keras.Model(noise, genSeq(noise))
+
+    def getAnoGan(self, generator, discriminator, anoGan_disc_weight=1):
+        # anoGan
+        oneInput = tf.keras.layers.Input(shape=1, name="oneInput")
+        adjustInput = tf.keras.layers.Dense(
+            self.latent_dim, activation="sigmoid", name="adjustInput", use_bias=False
+        )(oneInput)
+        genOutput = generator(adjustInput)
+        discOutput = discriminator(genOutput)
+
+        inverse_weight = 1.0 / anoGan_disc_weight
+        return tf.keras.Model(
+            inputs=[oneInput],
+            outputs=[inverse_weight * genOutput, anoGan_disc_weight * discOutput],
+        )
+
+    @classmethod
+    def loadClassifier(cls):
+        data = {}
+        with open(f"model/{cls.__name__}_other_parameters") as json_file:
+            data = json.load(json_file)
+            threshold = data["threshold"]
+        qc = cls(bases=None)
+        qc.ansatz.generator.load_weights(f"model/{cls.__name__}_generator_weights")
+        qc.ansatz.discriminator.load_weights(
+            f"model/{cls.__name__}_discriminator_weights"
+        )
+        qc.ansatz.anoGanModel.load_weights(f"model/{cls.__name__}_anoGan_weights")
+
+        qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
+        qc.anoGan = ThresholdWrapper(qc.anoGan)
+        qc.anoGan._threshold = threshold
+        return qc
+
+    def save(self):
+        data = {"threshold": self.anoGan._threshold}
+        self.ansatz.generator.save_weights(
+            f"model/{self.__class__.__name__}_generator_weights"
+        )
+        self.ansatz.discriminator.save_weights(
+            f"model/{self.__class__.__name__}_discriminator_weights"
+        )
+        self.ansatz.anoGanModel.save_weights(
+            f"model/{self.__class__.__name__}_anoGan_weights"
+        )
+        with open(
+            f"model/{self.__class__.__name__}_other_parameters", "w"
+        ) as json_file:
+            json.dump(data, json_file)
 
 
 class TfqSimulator(Classifier):
@@ -156,7 +216,7 @@ class TfqSimulator(Classifier):
             np.array([[1]]),
         ]
         self.ansatz.trainingDataSampler = LabelSampler()
-        self.ansatz.checkAnsatz()
+        self.cost = AnoGanCost(self.ansatz)
 
     def getGenerator(self, bases):
         self.circuitObject = CircHelper.LittleEntanglementIdentity(
@@ -236,7 +296,7 @@ class PennylaneSimulator(Classifier):
 
         self.ansatz.trainingDataSampler = LabelSampler()
         self.ansatz.anoGanInputs = [np.array([[1]])]
-        self.ansatz.checkAnsatz()
+        self.cost = AnoGanCost(self.ansatz)
 
     def getGenerator(self, bases):
         # pennylane expects a qnode for the quantum neural network layer
@@ -290,3 +350,4 @@ class PennylaneIbmQ(PennylaneSimulator):
         super().__init__(n_steps=n_steps, bases=bases)
         # TODO
         self.device = qml.device("default.qubit", wires=self.latent_dim)
+        self.cost = AnoGanCost(self.ansatz)

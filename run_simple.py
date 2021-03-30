@@ -15,7 +15,7 @@ Arguments:
 """
 
 ganBackends = {
-    "classical": GanClassifier.ClassicalClassifier,
+    "classical": GanClassifiers.ClassicalClassifier,
     "tfqSimulator": GanClassifiers.TfqSimulator,
     "qulacsSimulator": GanClassifiers.PennylaneSimulator,
     "pennylaneIBMQ": GanClassifiers.PennylaneIbmQ,
@@ -28,7 +28,7 @@ def main():
     assert sys.argv[2] in ["train", "predict"], errorMsg
 
     classifierClass = ganBackends[sys.argv[1]]
-    trainingSteps = 1
+    trainingSteps = 1000
 
     if sys.argv[2] == "train":
         qc = classifierClass(n_steps=trainingSteps)

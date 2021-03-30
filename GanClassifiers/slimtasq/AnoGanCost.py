@@ -50,11 +50,11 @@ class AnoGanCost:
             predicted = anoGan.predict(X)
             return -sklearn.metrics.f1_score(Y.to_numpy(), predicted)
 
-        # results = skopt.forest_minimize(
-        #    objective, SPACE, n_calls=10, n_random_starts=10
-        # )
-        anoGan._threshold = 1.0  # results.x[0]
-        self.optimized_f1 = 0.0  # results.fun
+        results = skopt.forest_minimize(
+            objective, SPACE, n_calls=10, n_random_starts=10
+        )
+        anoGan._threshold = results.x[0]
+        self.optimized_f1 = results.fun
         print(f"Threshold {anoGan.threshold}")
         print("finished threshold optimization")
         return anoGan

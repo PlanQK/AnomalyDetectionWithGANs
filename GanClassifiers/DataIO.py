@@ -46,7 +46,7 @@ class LabelSampler:
     def __init__(self):
         self.dataset = load_training_set()
 
-    def __call__(self, batchSize=200):
+    def __call__(self, batchSize=100):
         dataset = pd.concat(
             [
                 self.dataset[self.dataset.Class == 0].sample(
