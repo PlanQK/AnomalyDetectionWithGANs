@@ -10,6 +10,8 @@ class IdentityCircuitBase:
   """
 
     def __init__(self, x=3, y=3, totalNumCycles=3):
+        self.x = x
+        self.y = y
         self.qubits = cirq.GridQubit.rect(x, y)
         self.circuit = cirq.Circuit()
         self.totalNumCycles = totalNumCycles
@@ -47,7 +49,7 @@ class IdentityCircuitBase:
         return self.circuit
 
     def setBases(self, bases):
-        assert len(bases) == int(math.ceil(self.totalNumCycles / 2) * self.x * self.y)
+        assert len(bases) == len(self.bases.flatten())
         self.bases = []
         for element in bases:
             if element == "X":

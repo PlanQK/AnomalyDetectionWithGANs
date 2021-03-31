@@ -1,3 +1,10 @@
+"""This file contains different classes for the classification.
+One for each configuration. The main classes currently are:
+    - ClassicalClassifier: The purely classical AnoGan
+    - TfqSimulator: a simulation reliant on the tensorflow quantum framework
+    - PennylaneSimulator: a simulation with the pennylane framework
+    - PennylaneIbmQ: calculation on the IBM Quantum computer with the Pennylane framework
+"""
 import json
 import numpy as np
 import tensorflow as tf
@@ -50,16 +57,16 @@ class Classifier:
         # only allow the number of qubits to be between 1-9
         self.latent_dim = max(1, int(self.num_features / 3))
         self.latent_dim = min(9, self.latent_dim)
-        self.totalNumCycles = envMgr["totalDepth"]
+        self.totalNumCycles = int(envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
             tf.keras.optimizers.Adam(0.0002, beta_1=0.5),
             "WGAN",
-            n_steps=envMgr["trainingSteps"],
-            updateInterval=envMgr["trainingSteps"] + 10,
-            batchSize=envMgr["batchSize"],
-            discriminatorIterations=envMgr["discriminatorIterations"],
-            gpWeight=envMgr["gpWeight"],
+            n_steps=int(envMgr["trainingSteps"]),
+            updateInterval=int(envMgr["trainingSteps"]) + 10,
+            batchSize=int(envMgr["batchSize"]),
+            discriminatorIterations=int(envMgr["discriminatorIterations"]),
+            gpWeight=float(envMgr["gpWeight"]),
         )
 
         self.ansatz = AnoGanAnsatz(self.__class__.__name__)
@@ -282,8 +289,13 @@ class TfqSimulator(Classifier):
 
 class PennylaneSimulator(Classifier):
     def __init__(self, bases=None):
+        # copied code from the base init because we need it earlier
+        self.num_features = get_feature_length()
+        envMgr = EnvironmentVariableManager()
+        # only allow the number of qubits to be between 1-9
+        self.latent_dim = max(1, int(self.num_features / 3))
         self.latent_dim = min(9, self.latent_dim)
-        self.totalNumCycles = totalNumCycles
+        self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device("default.qubit", wires=self.latent_dim)
 
@@ -318,7 +330,6 @@ class PennylaneSimulator(Classifier):
             circuit,
             {"weights": self.circuitObject.numVariables},
             self.circuitObject.numQubits,
-            dtype=tf.dtypes.float32,
         )
         expectation = sampler(circuitInputParam)
 

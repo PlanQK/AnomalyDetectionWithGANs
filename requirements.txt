@@ -5,5 +5,5 @@ scikit-learn==0.24.1
 scikit-opt==0.6.3
 scikit-optimize==0.8.1
 tensorflow-quantum==0.4.0
-PennyLane==0.14.1
+PennyLane==0.14.0
 tqdm==4.59.0

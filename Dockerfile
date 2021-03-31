@@ -9,7 +9,7 @@ RUN mkdir /quantum-anomaly/input-data
 RUN mkdir /quantum-anomaly/model
 
 RUN apt-get update && apt-get install -y python3-pip
-RUN python3 -m pip install --upgrade setuptools pip; python3 -m pip install -r /quantum-anomaly/requirements.txt --use-feature=2020-resolver
+RUN python3 -m pip install --upgrade setuptools pip; python3 -m pip install -r /quantum-anomaly/requirements.txt
 ADD GanClassifiers/ /quantum-anomaly/GanClassifiers
 ADD run_simple.py /quantum-anomaly/
 

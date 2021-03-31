@@ -32,7 +32,7 @@ class ThresholdWrapper(Model):
     def threshold(self, thr):
         self._threshold = thr
 
-    def predict(self, X):
+    def predict(self, X, iterations=20):
         """Convert a float like output into a binary choice using the threshold.
 
         Args:
@@ -44,6 +44,9 @@ class ThresholdWrapper(Model):
         # decorates the predict function to return the correct format
         # output is normally in {-1, 1} and not {0,1}
         result = np.array(
-            [1 if i >= self._threshold else 0 for i in self.model.predict(X.to_numpy())]
+            [
+                1 if i >= self._threshold else 0
+                for i in self.model.predict(X.to_numpy(), iterations)
+            ]
         )
         return result

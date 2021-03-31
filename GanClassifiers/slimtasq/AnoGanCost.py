@@ -44,7 +44,7 @@ class AnoGanCost:
         envMgr = EnvironmentVariableManager()
 
         X, Y = self.ansatz.trainingDataSampler(
-            batchSize=envMgr["thresholdSearchBatchSize"]
+            batchSize=int(envMgr["thresholdSearchBatchSize"])
         )
 
         SPACE = [skopt.space.Real(0.5, 3.2, name="thr")]
@@ -52,13 +52,15 @@ class AnoGanCost:
         @skopt.utils.use_named_args(SPACE)
         def objective(thr):
             anoGan.threshold = thr
-            predicted = anoGan.predict(X, envMgr["latentVariableOptimizationIterations"])
+            predicted = anoGan.predict(
+                X, int(envMgr["latentVariableOptimizationIterations"])
+            )
             return -sklearn.metrics.f1_score(Y.to_numpy(), predicted)
 
         results = skopt.forest_minimize(
             objective,
             SPACE,
-            n_calls=envMgr["thresholdSearchIterations"],
+            n_calls=int(envMgr["thresholdSearchIterations"]),
             n_random_starts=10,
         )
         anoGan._threshold = results.x[0]
@@ -79,7 +81,9 @@ class AnoGanCost:
         """
         X, Y = self.ansatz.getTestSample()
         model = self.buildAnoGan(opt)
-        prediction = model.predict(X)
+        prediction = model.predict(
+            X, int(EnvironmentVariableManager()["latentVariableOptimizationIterations"])
+        )
 
         return {
             "false positive": AnoGanCost.getFalsePositiveRate(Y, prediction),

@@ -1,3 +1,8 @@
+"""This file is the entrypoint for the docker run command.
+Here, the parameters are interpreted and the respective
+AnoGan class/simulation is instanciated.
+"""
+
 import sys
 import GanClassifiers
 from GanClassifiers.slimtasq import EnvironmentVariableManager
@@ -34,7 +39,7 @@ Any further settings are done through environment variables:
     batchSize: 64  Number of samples per training step
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
-    latentVariableOptimizationIterations: 30 Number of optimization iterations to obtain the latent variables
+    latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
 """
 
 ganBackends = {
@@ -53,6 +58,7 @@ def main():
     assert sys.argv[1] in ganBackends.keys(), errorMsg
     assert sys.argv[2] in ["train", "predict"], errorMsg
 
+    # obtain
     classifierClass = ganBackends[sys.argv[1]]
 
     if sys.argv[2] == "train":

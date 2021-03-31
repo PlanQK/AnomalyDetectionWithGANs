@@ -14,8 +14,9 @@ class Singleton(type):
 class EnvironmentVariableManager(metaclass=Singleton):
     def __init__(self, defaultVariables: typing.Dict[str, typing.Any] = {}):
         self.envVariables = defaultVariables.copy()
-        self.envVariables.update()
+        self.envVariables.update(self.returnEnvironmentVariables())
 
+    @staticmethod
     def returnEnvironmentVariables() -> typing.Dict[str, typing.Any]:
         return os.environ
 
