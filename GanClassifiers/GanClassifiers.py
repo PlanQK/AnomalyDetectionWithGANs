@@ -360,9 +360,31 @@ class PennylaneIbmQ(PennylaneSimulator):
     """Run the Pennylane QWGan with the IBM Quantum backend
     """
 
-    def __init__(selfbases=None):
+    def __init__(self, bases=None):
+        # copied code from the base init because we need it earlier
+        self.num_features = get_feature_length()
+        envMgr = EnvironmentVariableManager()
+        # only allow the number of qubits to be between 1-9
+        self.latent_dim = max(1, int(self.num_features / 3))
         self.latent_dim = min(9, self.latent_dim)
-        self.device = qml.device("default.qubit", wires=self.latent_dim)
-        super().__init__(bases=bases)
-        # TODO
+        self.totalNumCycles = int(envMgr["totalDepth"])
+        # Pennylane specifics
+        self.device = qml.device(
+            "qiskit.ibmq",
+            wires=self.latent_dim,
+            backend="ibmq_qasm_simulator",
+            ibmqx_token=envMgr["ibmqx_token"],
+        )
+
+        self.circuitObject = PennylaneHelper.LittleEntanglementIdentity(
+            self.latent_dim, self.totalNumCycles
+        )
+        Classifier.__init__(self, bases=bases)
+
+        self.ansatz.trueInputSampler = NoLabelSampler()
+        self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
+        self.ansatz.getTestSample = LabelSampler()
+
+        self.ansatz.trainingDataSampler = LabelSampler()
+        self.ansatz.anoGanInputs = [np.array([[1]])]
         self.cost = AnoGanCost(self.ansatz)

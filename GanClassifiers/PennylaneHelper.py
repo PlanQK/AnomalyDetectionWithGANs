@@ -120,14 +120,14 @@ class LittleEntanglementIdentity(IdentityCircuitBase):
         if cyclePos == int(self.totalNumCycles / 2) - 1:
             return
         flipFlop = cyclePos % 2
-        for qubitID in range(self.numQubits):
+        print("  ")
+        for qubitID in range(int(self.numQubits / 2)):
             qml.CNOT(
                 wires=[
-                    (flipFlop + qubitID) % self.numQubits,
-                    (flipFlop + qubitID + 1) % self.numQubits,
+                    (flipFlop + 2 * qubitID) % self.numQubits,
+                    (flipFlop + 2 * qubitID + 1) % self.numQubits,
                 ]
             )
-            flipFlop = (flipFlop + 1) % 2
         return
 
     def generateInvCycle(self, params, cyclePos):
@@ -135,14 +135,10 @@ class LittleEntanglementIdentity(IdentityCircuitBase):
         # last one does not need entangling gates as they cancel the inverted
         if cyclePos != 0:
             flipFlop = cyclePos % 2
-            for qubitID in range(self.numQubits):
-                qml.CNOT(
-                    wires=[
-                        (flipFlop + qubitID) % self.numQubits,
-                        (flipFlop + qubitID + 1) % self.numQubits,
-                    ]
-                )
-                flipFlop = (flipFlop + 1) % 2
+            for qubitID in range(int((self.numQubits) / 2)):
+                pos1 = (flipFlop + 2 * qubitID) % self.numQubits
+                pos2 = (flipFlop + 2 * qubitID + 1) % self.numQubits
+                qml.CNOT(wires=[pos1, pos2])
         for qubitID in range(self.numQubits):
             self.bases[len(self.bases) - cyclePos - 1][qubitID](
                 params[-(cyclePos * self.numQubits + qubitID)], wires=qubitID

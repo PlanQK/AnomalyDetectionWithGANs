@@ -6,4 +6,5 @@ scikit-opt==0.6.3
 scikit-optimize==0.8.1
 tensorflow-quantum==0.4.0
 PennyLane==0.14.0
+PennyLane_qiskit==0.14.0
 tqdm==4.59.0

@@ -16,6 +16,7 @@ DEFAULT_ENV_VARIABLES = {
     "discriminatorIterations": 5,
     "gpWeight": 10,
     "latentVariableOptimizationIterations": 30,
+    "ibmqx_token": "",
 }
 
 
@@ -40,6 +41,7 @@ Any further settings are done through environment variables:
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
+    ibmqx_token: ""  Token to access IBM Quantum experience
 """
 
 ganBackends = {
