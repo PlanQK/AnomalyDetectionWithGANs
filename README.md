@@ -40,4 +40,5 @@ There are many settings that can be adjusted through environment variables. Add 
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
+    ibmqx_token: ""  Connection token that provides access to the IBM Q Cloud
 ```
