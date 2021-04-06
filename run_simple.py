@@ -25,7 +25,7 @@ Usage: run_me.py classical|tfqSimulator|pennylaneSimulator|pennylaneIBMQ train|p
 Arguments:
     classical: Run the AnoGAN with a classical generator. This is the fastest option.
     tfqSimulator: Run a simulated version of the quantum AnoGAN with Tensorflow Quantum.
-    qulacsSimulator: Run a simulated version of the quantum AnoGAN with Pennylane and the Qulacs simulator backend.
+    qulacsSimulator: Run a simulated version of the quantum AnoGAN with Pennylane.
     pennylaneIBMQ: Run on the real hardware with Pennylane and its IBM Q backend.
 
     train: Trains the network. Requires that input-data/trainingData.csv exists.

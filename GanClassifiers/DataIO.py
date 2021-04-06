@@ -36,7 +36,9 @@ def get_feature_length():
 class NoLabelSampler:
     def __init__(self):
         self.dataset = load_training_set()
-        self.dataset = self.dataset[self.dataset.Class == 0].drop(["Class"], axis=1)
+        self.dataset = self.dataset[self.dataset.Class == 0].drop(
+            ["Class"], axis=1
+        )
 
     def __call__(self, batchSize):
         return self.dataset.sample(batchSize).to_numpy()

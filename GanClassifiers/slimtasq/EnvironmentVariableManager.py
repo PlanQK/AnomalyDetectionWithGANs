@@ -12,6 +12,10 @@ class Singleton(type):
 
 
 class EnvironmentVariableManager(metaclass=Singleton):
+    """Singleton class to access environment variables. On first
+    initialization default values can be specified in the constructor call.
+    """
+
     def __init__(self, defaultVariables: typing.Dict[str, typing.Any] = {}):
         self.envVariables = defaultVariables.copy()
         self.envVariables.update(self.returnEnvironmentVariables())

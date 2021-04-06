@@ -1,18 +1,10 @@
-import numpy as np
-import sklearn
-import skopt
-from .ThresholdWrapper import ThresholdWrapper
-import tensorflow as tf
-import tensorflow.keras.backend as K
-import json
-
-
 class GanCost:
     def __init__(self, ansatz, **kwargs):
         """Create the cost object.
 
         Args:
-            ansatz (AnoGanAnsatz): This object contains the required structure for the AnoGan ansatz.
+            ansatz (AnoGanAnsatz): This object contains the required
+                structure for the AnoGan ansatz.
         """
         ansatz.checkAnsatz()
         self.ansatz = ansatz
@@ -23,7 +15,8 @@ class GanCost:
         Therefore, this method returns 5 samples from the generator.
 
         Args:
-            opt (tf.keras.optimizer): [unused] Optimizer required for the AnoGan architecture e.g. Adam optimizer.
+            opt (tf.keras.optimizer): [unused] Optimizer required for
+                the AnoGan architecture e.g. Adam optimizer.
 
         Returns:
             dict: dict containing the results for the different metrics.
@@ -39,7 +32,10 @@ class GanCost:
         Returns:
             dict: parameters
         """
-        config = {"ansatz": self.ansatz._to_dict(), "init_params": self.init_params}
+        config = {
+            "ansatz": self.ansatz._to_dict(),
+            "init_params": self.init_params,
+        }
         return config
 
     def __str__(self):
@@ -57,40 +53,3 @@ class GanCost:
         }
         repr_dict.update(self.get_config())
         return repr_dict
-
-    @classmethod
-    def from_config(cls, dct):
-        """Create a new object from a serialized dict.
-
-        TODO: check if this function is really needed
-
-        Args:
-            dct (dict): serialized form of a previous object
-
-        Raises:
-            ValueError: dct is missing elements or has invalid parameters.
-
-        Returns:
-            GanCost: The new de-serialized object.
-        """
-        # TensorFlow needs us to deserialize our custom objects first
-        ansatz = dct.pop("ansatz")
-        ansatz_obj = json.loads(json.dumps(ansatz), cls=PennylaneJSONDecoder)
-        dct.update({"ansatz": ansatz_obj, "device": device_obj, "model": model_obj})
-        return cls._from_dict(dct)
-
-    @classmethod
-    def _from_dict(cls, dct):
-        """Create a new object from a serialized dict.
-
-        Args:
-            dct (dict): serialized form of a previous object
-
-        Raises:
-            ValueError: dct is missing elements or has invalid parameters.
-
-        Returns:
-            GanCost: The new de-serialized object.
-        """
-        obj = cls(**dct)
-        return obj

@@ -23,15 +23,22 @@ class WGanOptimization:
         vanishing gradients).
 
         Args:
-            opt (tf.keras.optimizer): Optimizer to perform gradient descent with.
+            opt (tf.keras.optimizer): Optimizer to perform gradient descent
             name (str): A name to identify this object among others.
             n_steps (int, optional): Optimization steps. Defaults to 600.
-            batchSize (int, optional): Number of training samples for each optimization step. Defaults to 64.
-            discriminatorIterations (int, optional): How often the discriminator is trained for each generator optimization. Defaults to 5.
-            updateInterval (int, optional): How often are debug costs and metrics (in optimization steps). Defaults to 50.
-            opt_args (dict, optional): Additional arguments for the optimizer. Defaults to {}.
-            step_args (dict, optional): Additional arguments for the step function. Defaults to {}.
-            interface (str, optional): Unused, remnant from pennylane. Defaults to "autograd".
+            batchSize (int, optional): Number of training samples for each
+                    optimization step. Defaults to 64.
+            discriminatorIterations (int, optional): How often the
+                    discriminator is trained for each generator optimization.
+                    Defaults to 5.
+            updateInterval (int, optional): How often are debug costs and
+                    metrics (in optimization steps). Defaults to 50.
+            opt_args (dict, optional): Additional arguments for the optimizer.
+                    Defaults to {}.
+            step_args (dict, optional): Additional arguments for the step
+                    function. Defaults to {}.
+            interface (str, optional): Unused, remnant from pennylane.
+                    Defaults to "autograd".
         """
         self.opt = opt
         self.name = name
@@ -65,18 +72,25 @@ class WGanOptimization:
         and a single update for the generator parameters.
 
         Args:
-            cost (GanCost): Metrics for the performance of the gan. Main requirement is the GanAnsatz stored in the cost object.
+            cost (GanCost): Metrics for the performance of the gan. Main
+                    requirement is the GanAnsatz stored in the cost object.
         """
         real_images = cost.ansatz.trueInputSampler(self.batchSize)
         for i in range(self.discriminatorIterations):
             # Get the latent vector
-            random_latent_vectors = cost.ansatz.latentVariableSampler(self.batchSize)
+            random_latent_vectors = cost.ansatz.latentVariableSampler(
+                self.batchSize
+            )
             with tf.GradientTape() as tape:
                 fake_images = cost.ansatz.generator(
                     random_latent_vectors, training=True
                 )
-                fake_logits = cost.ansatz.discriminator(fake_images, training=True)
-                real_logits = cost.ansatz.discriminator(real_images, training=True)
+                fake_logits = cost.ansatz.discriminator(
+                    fake_images, training=True
+                )
+                real_logits = cost.ansatz.discriminator(
+                    real_images, training=True
+                )
 
                 d_cost = self.discriminatorLoss(real_logits, fake_logits)
                 gp = self.gradient_penalty(cost, real_images, fake_images)
@@ -86,22 +100,28 @@ class WGanOptimization:
             d_gradient = tape.gradient(
                 d_loss, cost.ansatz.discriminator.trainable_variables
             )
-            # Update the weights of the discriminator using the discriminator optimizer
+            # Update the weights of the discriminator
             self.opt.apply_gradients(
                 zip(d_gradient, cost.ansatz.discriminator.trainable_variables)
             )
 
         # Train the generator now.
-        random_latent_vectors = cost.ansatz.latentVariableSampler(self.batchSize)
+        random_latent_vectors = cost.ansatz.latentVariableSampler(
+            self.batchSize
+        )
         with tf.GradientTape() as tape:
             generated_images = cost.ansatz.generator(
                 random_latent_vectors, training=True
             )
-            gen_img_logits = cost.ansatz.discriminator(generated_images, training=True)
+            gen_img_logits = cost.ansatz.discriminator(
+                generated_images, training=True
+            )
             g_loss = self.generatorLoss(gen_img_logits)
             self.g_loss = float(g_loss)
 
-        gen_gradient = tape.gradient(g_loss, cost.ansatz.generator.trainable_variables)
+        gen_gradient = tape.gradient(
+            g_loss, cost.ansatz.generator.trainable_variables
+        )
         self.opt.apply_gradients(
             zip(gen_gradient, cost.ansatz.generator.trainable_variables)
         )
@@ -111,10 +131,13 @@ class WGanOptimization:
 
         Args:
             cost (GanCost): Metrics for the performance of the gan.
-            additional_step_args (dict, optional): unused here. Defaults to None.
+            additional_step_args (dict, optional): unused here.
+                    Defaults to None.
 
         Returns:
-            tuple(list, list): A touple containing the costs snapshots and parameter snapshots. The parameters are empty in this implementation.
+            tuple(list, list): A touple containing the costs snapshots and
+                    parameter snapshots. The parameters are empty in this
+                    implementation.
         """
         self.status = "running"
         # Override costs and params of previous run (if any)
@@ -122,6 +145,7 @@ class WGanOptimization:
         self.params_opt = []
 
         tic = time.perf_counter()
+
         for _ in tqdm(range(self.n_steps), desc=self.__str__()):
             self.step_counter += 1
             self._step(cost)
@@ -141,12 +165,16 @@ class WGanOptimization:
         return self.costs_opt, self.params_opt
 
     @staticmethod
-    def discriminatorLoss(realSampleDiscriminatorOutput, fakeSampleDiscriminatorOutput):
+    def discriminatorLoss(
+        realSampleDiscriminatorOutput, fakeSampleDiscriminatorOutput
+    ):
         """Calculate the loss for the discriminator optimization steps.
 
         Args:
-            realSampleDiscriminatorOutput (tf.tensor): output from the real sample
-            fakeSampleDiscriminatorOutput (tf.tensor): output from the generated samples
+            realSampleDiscriminatorOutput (tf.tensor):
+                    output from the real sample
+            fakeSampleDiscriminatorOutput (tf.tensor):
+                    output from the generated samples
 
         Returns:
             tf.tensor: value for the loss
@@ -160,7 +188,8 @@ class WGanOptimization:
         """Calculaete the loss for the generator optimization step.
 
         Args:
-            fakeSampleDiscriminatorOutput (tf.tensor): discriminator output from a generated sample
+            fakeSampleDiscriminatorOutput (tf.tensor):
+                    discriminator output from a generated sample
 
         Returns:
             tf.tensor: value for the loss

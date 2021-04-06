@@ -1,16 +1,28 @@
+"""Helper classes to define the circuits for the generator with Pennylane.
+"""
 import math
 import numpy as np
 import pennylane as qml
 
 
 class IdentityCircuitBase:
+    """Base class for identity circuits.
+    Identity circuits start out with random rotations that add up in
+    total to a single identity. This ensures that the optimization does
+    not start in a barren plateau.
+    This is especially important for deeper and larger circuits.
+    """
+
     def __init__(self, numQubits, totalNumCycles):
         self.numQubits = numQubits
         self.totalNumCycles = totalNumCycles
         bases = np.random.choice(
-            [qml.RX, qml.RY, qml.RZ], int(math.ceil(totalNumCycles / 2) * numQubits)
+            [qml.RX, qml.RY, qml.RZ],
+            int(math.ceil(totalNumCycles / 2) * numQubits),
         )
-        self.bases = bases.reshape(int(math.ceil(totalNumCycles / 2)), numQubits)
+        self.bases = bases.reshape(
+            int(math.ceil(totalNumCycles / 2)), numQubits
+        )
         self.numVariables = numQubits * totalNumCycles
         return
 
@@ -46,7 +58,9 @@ class IdentityCircuitBase:
             qml.RX(inputs[i], wires=i)
 
     def setBases(self, bases):
-        assert len(bases) == int(math.ceil(self.totalNumCycles / 2) * self.numQubits)
+        assert len(bases) == int(
+            math.ceil(self.totalNumCycles / 2) * self.numQubits
+        )
         self.bases = []
         for element in bases:
             if element == "X":
@@ -76,14 +90,17 @@ class IdentityCircuitBase:
                 basis = "Z"
             else:
                 raise ValueError(
-                    "The bases are only allowed to consist of the cirq Rotations: rx, ry, rz"
+                    "The bases are only allowed to consist of the cirq "
+                    "Rotations: rx, ry, rz"
                 )
             bases.append(basis)
         return bases
 
     def generateInitialParameters(self):
         startingParameters = (
-            np.random.random([int(self.totalNumCycles / 2), self.numQubits]) * 2 - 1
+            np.random.random([int(self.totalNumCycles / 2), self.numQubits])
+            * 2
+            - 1
         ) * np.pi
         if self.totalNumCycles == 1:
             return np.zeros([1, self.numQubits]).flatten()
@@ -103,24 +120,35 @@ class IdentityCircuitBase:
             ).flatten()
 
     def measureZ(self):
-        return [qml.expval(qml.PauliZ(qubitID)) for qubitID in range(self.numQubits)]
+        return [
+            qml.expval(qml.PauliZ(qubitID))
+            for qubitID in range(self.numQubits)
+        ]
 
 
 class LittleEntanglementIdentity(IdentityCircuitBase):
+    """This class specifies a circuit ansatz that uses a linear layer of CNOTs
+    as entangling layer. Therefor, not every qubit is directly entangled with
+    each other, but through a single chain of CNOTs.
+
+    The initial parameters are chosen such that the circuit starts out as an
+    identity operation.
+    """
+
     def generateCycle(self, params, cyclePos):
         add = 0
         if self.totalNumCycles % 2:
             add = 1
         for qubitID in range(self.numQubits):
             self.bases[cyclePos + add][qubitID](
-                params[(cyclePos + add) * self.numQubits + qubitID], wires=qubitID
+                params[(cyclePos + add) * self.numQubits + qubitID],
+                wires=qubitID,
             )
         # layer of entangling gates
         # last one does not need entangling gates as they cancel the inverted
         if cyclePos == int(self.totalNumCycles / 2) - 1:
             return
         flipFlop = cyclePos % 2
-        print("  ")
         for qubitID in range(int(self.numQubits / 2)):
             qml.CNOT(
                 wires=[

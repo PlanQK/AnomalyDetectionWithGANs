@@ -26,7 +26,8 @@ def serialize_element(element):
             return result["new"]
         except Exception as e:
             print(
-                f"Standard serialization does not for '{element}' with the following error:"
+                f"Standard serialization does not for '{element}' with the"
+                f" following error:"
             )
             print(e)
 
@@ -41,15 +42,17 @@ def serialize_element(element):
 
 class GanAnsatz:
     """
-    This Ansatz stores the unique network data / characteristics for general Gans.
-    This is not compatible with the AnoGan anomaly detection. Use AnoGanAnsatz instead.
+    This Ansatz stores the unique network data / characteristics for general
+    Gans. This is not compatible with the AnoGan anomaly detection. Use
+    AnoGanAnsatz instead.
     """
 
     def __init__(self, name):
         """Creates the GanAnsatz object
 
         Args:
-            name (str): The name will be used to identify the current object among multiple simulations.
+            name (str): The name will be used to identify the current object
+            among multiple simulations.
         """
         self._name = name
         self._performCheck = True
@@ -92,7 +95,8 @@ class GanAnsatz:
 
     def checkAnsatz(self):
         """Perform a check if all elements are set in this Ansatz object.
-        If this fails the GAN architecture is likely to fail as well in training and in calassification.
+        If this fails the GAN architecture is likely to fail as well in
+        training and in calassification.
 
         Raises:
             RuntimeError: An element is not set.
@@ -113,7 +117,8 @@ class GanAnsatz:
             errorMsg += "The trueInputSampler has not been set.\n"
         if errorMsg:
             raise RuntimeError(
-                f"Ansatz object: {self} did not pass sanity check. The following errors were found:\n{errorMsg}"
+                f"Ansatz object: {self} did not pass sanity check. The"
+                f" following errors were found:\n{errorMsg}"
             )
 
     def get_config(self):
@@ -134,7 +139,9 @@ class GanAnsatz:
         for element in toSerialize:
             # as this is specific logic we perform the recursion here manually
             # maybe it is better to wrap the modules in another class later on
-            repr_dict.update({element: serialize_element(getattr(self, element))})
+            repr_dict.update(
+                {element: serialize_element(getattr(self, element))}
+            )
         return repr_dict
 
     def _to_dict(self):
@@ -179,24 +186,29 @@ class GanAnsatz:
                 setattr(obj, element, dct[element])
             except Exception as e:
                 print(
-                    f"WARNING: {name} could not load element {element} due to following error:"
+                    f"WARNING: {name} could not load element {element} "
+                    "due to following error:"
                 )
                 print(e)
-                # this allows tasqw to continue if not everything is loaded -> should be removed once everything supports serialization
+                # this allows tasqw to continue if not everything is loaded
+                # -> should be removed once everything supports serialization
         obj._performCheck = False
         return obj
 
 
 class AnoGanAnsatz(GanAnsatz):
-    """ This Ansatz stores the unique network data / characteristics for anomaly detection in the AnoGan framework.
-    This abstraction allows the use of classical TF, quantum TFQ, and quantum Pennylane implementations.
+    """ This Ansatz stores the unique network data / characteristics for
+    anomaly detection in the AnoGan framework. This abstraction allows
+    the use of classical TF, quantum TFQ, and quantum Pennylane
+    implementations.
     """
 
     def __init__(self, name):
         """Creates the GanAnsatz object
 
         Args:
-            name (str): The name will be used to identify the current object among multiple simulations.
+            name (str): The name will be used to identify the current object
+            among multiple simulations.
         """
         super().__init__(name)
         self._testSampler = None
@@ -248,7 +260,8 @@ class AnoGanAnsatz(GanAnsatz):
 
     def checkAnsatz(self):
         """Perform a check if all elements are set in this Ansatz object.
-        If this fails the GAN architecture is likely to fail as well in training and in calassification.
+        If this fails the GAN architecture is likely to fail as well in
+        training and in calassification.
 
         Raises:
             RuntimeError: An element is not set.
@@ -277,7 +290,8 @@ class AnoGanAnsatz(GanAnsatz):
             errorMsg += "The trainingDataSampler has not been set.\n"
         if errorMsg:
             raise RuntimeError(
-                f"Ansatz object: {self} did not pass sanity check. The following errors were found:\n{errorMsg}"
+                f"Ansatz object: {self} did not pass sanity check. The "
+                f"following errors were found:\n{errorMsg}"
             )
 
     def get_config(self):
@@ -302,7 +316,9 @@ class AnoGanAnsatz(GanAnsatz):
         for element in toSerialize:
             # as this is specific logic we perform the recursion here manually
             # maybe it is better to wrap the modules in another class later on
-            repr_dict.update({element: serialize_element(getattr(self, element))})
+            repr_dict.update(
+                {element: serialize_element(getattr(self, element))}
+            )
         return repr_dict
 
     def _to_dict(self):
@@ -351,9 +367,11 @@ class AnoGanAnsatz(GanAnsatz):
                 setattr(obj, element, dct[element])
             except Exception as e:
                 print(
-                    f"WARNING: {name} could not load element {element} due to following error:"
+                    f"WARNING: {name} could not load element {element}"
+                    " due to following error:"
                 )
                 print(e)
-                # this allows tasq to continue if not everything is loaded -> should be removed once everything supports serialization
+                # this allows tasq to continue if not everything is loaded
+                # -> should be removed once everything supports serialization
         obj._performCheck = False
         return obj

@@ -3,7 +3,17 @@ One for each configuration. The main classes currently are:
     - ClassicalClassifier: The purely classical AnoGan
     - TfqSimulator: a simulation reliant on the tensorflow quantum framework
     - PennylaneSimulator: a simulation with the pennylane framework
-    - PennylaneIbmQ: calculation on the IBM Quantum computer with the Pennylane framework
+    - PennylaneIbmQ: calculation on the IBM Quantum computer with the
+                        Pennylane framework
+
+Internally, each classifier contains several instances from various
+classes. Their design comes from the tasq framework, which divides the
+problem into Optimization, Cost, and Ansatz. It was initially developed
+for optimization problems, but now we use it for AI as well.
+
+Optimization object: Performs Training of the GAN model
+Cost object: Calculation of metrics, e.g. F1-Score
+Ansatz: Combination of all ingredients: optimization, cost, training data etc.
 """
 import json
 import numpy as np
@@ -31,16 +41,31 @@ from . import PennylaneHelper
 
 
 class generatorInputSampler:
+    """Class to generate uniformly distributed latent variables.
+    These are used by the generator to create new samples.
+    """
+
     def __init__(self, latent_dim):
         self.latent_dim = latent_dim
 
     def __call__(self, batchSize):
         return np.array(
-            [np.random.uniform(0, 1, self.latent_dim) for i in range(batchSize)]
+            [
+                np.random.uniform(0, 1, self.latent_dim)
+                for i in range(batchSize)
+            ]
         )
 
 
 class generatorInputSamplerTFQ(generatorInputSampler):
+    """Generate the input to the TFQ Generator. This consists of
+    the same uniformly distributed latent variables as in the
+    generatorInputSampler. TFQ additionally requires the input
+    state (empty circuit). The helper input (1) is another workaround
+    to be able to optimize the weights of the TFQ layer (variational
+    parameters).
+    """
+
     def __call__(self, batchSize):
         return [
             tfq.convert_to_tensor([cirq.Circuit()] * batchSize),
@@ -50,7 +75,14 @@ class generatorInputSamplerTFQ(generatorInputSampler):
 
 
 class Classifier:
+    """Base class for the different Gan Classifiers. Ideally, only the
+    getGenerator and getAnoGan methods need to be specified to obtain a
+    new classifier.
+    """
+
     def __init__(self, bases=None):
+        """Instantiate all the dependent classes for the AnoGan method.
+        """
         self.anoGan = None
         self.num_features = get_feature_length()
         envMgr = EnvironmentVariableManager()
@@ -77,6 +109,9 @@ class Classifier:
         )
 
     def getDiscriminator(self):
+        """Return the Tensorflow model for the Discriminator.
+        For comparability this should be the same for the different approaches.
+        """
         discSeq = tf.keras.Sequential()
         discSeq.add(tf.keras.layers.Dense(self.num_features))
         discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
@@ -88,33 +123,58 @@ class Classifier:
         return tf.keras.Model(discInput, valid)
 
     def getGenerator(self, bases):
+        """Return the Tensorflow model for the generator.
+        Depending on the classifier type this includes the circuit
+        specification for the quantum generator
+        Args:
+            bases ([str]): The bases of the rotational gates. If
+                    these are not specified random bases are chosen.
+        """
         raise NotImplementedError("Need to use the derived class")
 
     def getAnoGan(self, generator, discriminator):
+        """Generate the Tensorflow model for the anogan method.
+        This combines both the generator and discriminator into a
+        complete classifier.
+
+        Args:
+            generator ([type]): Tensorflow model for the generator
+            discriminator ([type]): Tensorflow model for the discriminator
+        """
         raise NotImplementedError("Need to use the derived class")
 
     def train(self):
+        """Perform the training on the defined gan model.
+        """
         self.opt.run(self.cost)
         # now optimize threshold
         self.anoGan = self.cost.buildAnoGan(self.opt.opt)
 
     def predict(self):
+        """Perform the prediction on the defined gan model.
+        """
         X = load_prediction_set_no_labels()
         return self.anoGan.predict(X)
 
     @classmethod
     def loadClassifier(cls):
+        """Load a previously trained classifier from files.
+        """
         data = {}
         with open(f"model/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
             threshold = data["threshold"]
             bases = data["bases"]
         qc = cls(bases=bases)
-        qc.ansatz.generator.load_weights(f"model/{cls.__name__}_generator_weights")
+        qc.ansatz.generator.load_weights(
+            f"model/{cls.__name__}_generator_weights"
+        )
         qc.ansatz.discriminator.load_weights(
             f"model/{cls.__name__}_discriminator_weights"
         )
-        qc.ansatz.anoGanModel.load_weights(f"model/{cls.__name__}_anoGan_weights")
+        qc.ansatz.anoGanModel.load_weights(
+            f"model/{cls.__name__}_anoGan_weights"
+        )
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
         qc.anoGan = ThresholdWrapper(qc.anoGan)
@@ -122,6 +182,8 @@ class Classifier:
         return qc
 
     def save(self):
+        """Store the trained weights and parameters.
+        """
         data = {
             "threshold": self.anoGan._threshold,
             "bases": self.circuitObject.getBases(),
@@ -146,7 +208,9 @@ class ClassicalClassifier(Classifier):
         super().__init__(bases=bases)
 
         self.ansatz.trueInputSampler = NoLabelSampler()
-        self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
+        self.ansatz.latentVariableSampler = generatorInputSampler(
+            self.latent_dim
+        )
         self.ansatz.getTestSample = LabelSampler()
 
         self.ansatz.trainingDataSampler = LabelSampler()
@@ -154,20 +218,29 @@ class ClassicalClassifier(Classifier):
         self.cost = AnoGanCost(self.ansatz)
 
     def getGenerator(self, _):
+        """The classical generator consists of several dense layers,
+        and
+        """
         genSeq = tf.keras.Sequential()
         noise = tf.keras.layers.Input(shape=(self.latent_dim))
         for layer in range(self.totalNumCycles):
             genSeq.add(tf.keras.layers.Dense(9, input_dim=self.latent_dim))
             genSeq.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+            genSeq.add(tf.keras.layers.BatchNormalization(momentum=0.8))
 
-        genSeq.add(tf.keras.layers.Dense(self.num_features, activation="sigmoid"))
+        genSeq.add(
+            tf.keras.layers.Dense(self.num_features, activation="sigmoid")
+        )
         return tf.keras.Model(noise, genSeq(noise))
 
     def getAnoGan(self, generator, discriminator, anoGan_disc_weight=1):
         # anoGan
         oneInput = tf.keras.layers.Input(shape=1, name="oneInput")
         adjustInput = tf.keras.layers.Dense(
-            self.latent_dim, activation="sigmoid", name="adjustInput", use_bias=False
+            self.latent_dim,
+            activation="sigmoid",
+            name="adjustInput",
+            use_bias=False,
         )(oneInput)
         genOutput = generator(adjustInput)
         discOutput = discriminator(genOutput)
@@ -175,7 +248,10 @@ class ClassicalClassifier(Classifier):
         inverse_weight = 1.0 / anoGan_disc_weight
         return tf.keras.Model(
             inputs=[oneInput],
-            outputs=[inverse_weight * genOutput, anoGan_disc_weight * discOutput],
+            outputs=[
+                inverse_weight * genOutput,
+                anoGan_disc_weight * discOutput,
+            ],
         )
 
     @classmethod
@@ -185,11 +261,15 @@ class ClassicalClassifier(Classifier):
             data = json.load(json_file)
             threshold = data["threshold"]
         qc = cls(bases=None)
-        qc.ansatz.generator.load_weights(f"model/{cls.__name__}_generator_weights")
+        qc.ansatz.generator.load_weights(
+            f"model/{cls.__name__}_generator_weights"
+        )
         qc.ansatz.discriminator.load_weights(
             f"model/{cls.__name__}_discriminator_weights"
         )
-        qc.ansatz.anoGanModel.load_weights(f"model/{cls.__name__}_anoGan_weights")
+        qc.ansatz.anoGanModel.load_weights(
+            f"model/{cls.__name__}_anoGan_weights"
+        )
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
         qc.anoGan = ThresholdWrapper(qc.anoGan)
@@ -217,7 +297,9 @@ class TfqSimulator(Classifier):
     def __init__(self, bases=None):
         super().__init__(bases=bases)
         self.ansatz.trueInputSampler = NoLabelSampler()
-        self.ansatz.latentVariableSampler = generatorInputSamplerTFQ(self.latent_dim)
+        self.ansatz.latentVariableSampler = generatorInputSamplerTFQ(
+            self.latent_dim
+        )
         self.ansatz.getTestSample = LabelSampler()
         self.ansatz.anoGanInputs = [
             tfq.convert_to_tensor([cirq.Circuit()]),
@@ -234,7 +316,9 @@ class TfqSimulator(Classifier):
             self.circuitObject.setBases(bases)
         circuit = self.circuitObject.buildCircuit()
         # build generator
-        circuitInput = tf.keras.Input(shape=(), dtype=tf.string, name="circuitInput")
+        circuitInput = tf.keras.Input(
+            shape=(), dtype=tf.string, name="circuitInput"
+        )
         circuitInputParam = tf.keras.Input(
             shape=len(self.circuitObject.inputParams), name="circuitInputParam"
         )
@@ -248,7 +332,9 @@ class TfqSimulator(Classifier):
 
         paramsInput2 = paramsInput2_layer(paramsInput)
 
-        sampler = tfq.layers.ControlledPQC(circuit, self.circuitObject.getReadOut())
+        sampler = tfq.layers.ControlledPQC(
+            circuit, self.circuitObject.getReadOut()
+        )
         concat = tf.concat([circuitInputParam, paramsInput2], axis=1)
         expectation = sampler([circuitInput, concat])
 
@@ -276,14 +362,19 @@ class TfqSimulator(Classifier):
         adjustInput = tf.keras.layers.Dense(
             self.latent_dim, activation="sigmoid", name="adjustInput"
         )(oneInput)
-        circuitInput2 = tf.keras.Input(shape=(), dtype=tf.string, name="circuitInput2")
+        circuitInput2 = tf.keras.Input(
+            shape=(), dtype=tf.string, name="circuitInput2"
+        )
         genOutput = generator(inputs=[circuitInput2, adjustInput, oneInput])
         discOutput = discriminator(genOutput)
 
         inverse_weight = 1.0 / anoGan_disc_weight
         return tf.keras.Model(
             inputs=[circuitInput2, oneInput],
-            outputs=[inverse_weight * genOutput, anoGan_disc_weight * discOutput],
+            outputs=[
+                inverse_weight * genOutput,
+                anoGan_disc_weight * discOutput,
+            ],
         )
 
 
@@ -306,7 +397,9 @@ class PennylaneSimulator(Classifier):
         super().__init__(bases=bases)
 
         self.ansatz.trueInputSampler = NoLabelSampler()
-        self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
+        self.ansatz.latentVariableSampler = generatorInputSampler(
+            self.latent_dim
+        )
         self.ansatz.getTestSample = LabelSampler()
 
         self.ansatz.trainingDataSampler = LabelSampler()
@@ -337,14 +430,19 @@ class PennylaneSimulator(Classifier):
             self.num_features, activation="sigmoid", name="postProcessing2"
         )(expectation)
 
-        generator = tf.keras.Model(inputs=[circuitInputParam], outputs=generatedSample)
+        generator = tf.keras.Model(
+            inputs=[circuitInputParam], outputs=generatedSample
+        )
         return generator
 
     def getAnoGan(self, generator, discriminator, anoGan_disc_weight=1):
         # anoGan
         oneInput = tf.keras.layers.Input(shape=1, name="oneInput")
         adjustInput = tf.keras.layers.Dense(
-            self.latent_dim, activation="sigmoid", name="adjustInput", use_bias=False
+            self.latent_dim,
+            activation="sigmoid",
+            name="adjustInput",
+            use_bias=False,
         )(oneInput)
         genOutput = generator(adjustInput)
         discOutput = discriminator(genOutput)
@@ -352,7 +450,10 @@ class PennylaneSimulator(Classifier):
         inverse_weight = 1.0 / anoGan_disc_weight
         return tf.keras.Model(
             inputs=[oneInput],
-            outputs=[inverse_weight * genOutput, anoGan_disc_weight * discOutput],
+            outputs=[
+                inverse_weight * genOutput,
+                anoGan_disc_weight * discOutput,
+            ],
         )
 
 
@@ -382,7 +483,9 @@ class PennylaneIbmQ(PennylaneSimulator):
         Classifier.__init__(self, bases=bases)
 
         self.ansatz.trueInputSampler = NoLabelSampler()
-        self.ansatz.latentVariableSampler = generatorInputSampler(self.latent_dim)
+        self.ansatz.latentVariableSampler = generatorInputSampler(
+            self.latent_dim
+        )
         self.ansatz.getTestSample = LabelSampler()
 
         self.ansatz.trainingDataSampler = LabelSampler()
