@@ -212,7 +212,7 @@ class WGanOptimization:
         """
         # get the interplated image
         alpha = tf.random.uniform(
-            [self.batchSize, 1], 0.0, 1.0, dtype=tf.dtypes.float32
+            [self.batchSize, 1], 0.0, 1.0, dtype=tf.dtypes.float64
         )
         diff = fakeSample - realSample
         interpolated = realSample + alpha * diff

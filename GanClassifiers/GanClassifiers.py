@@ -51,7 +51,7 @@ class generatorInputSampler:
     def __call__(self, batchSize):
         return np.array(
             [
-                np.random.uniform(0, 1, self.latent_dim)
+                np.random.uniform(0, 1, self.latent_dim).astype(np.float64)
                 for i in range(batchSize)
             ]
         )
@@ -70,7 +70,7 @@ class generatorInputSamplerTFQ(generatorInputSampler):
         return [
             tfq.convert_to_tensor([cirq.Circuit()] * batchSize),
             super().__call__(batchSize),
-            np.array([[1]] * batchSize),
+            np.array([[1]] * batchSize).astype(np.float64),
         ]
 
 
@@ -83,6 +83,7 @@ class Classifier:
     def __init__(self, bases=None):
         """Instantiate all the dependent classes for the AnoGan method.
         """
+        tf.keras.backend.set_floatx("float64")
         self.anoGan = None
         self.num_features = get_feature_length()
         envMgr = EnvironmentVariableManager()
@@ -117,7 +118,9 @@ class Classifier:
         discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
         discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
 
-        discInput = tf.keras.layers.Input(shape=(self.num_features))
+        discInput = tf.keras.layers.Input(
+            shape=(self.num_features), name="DiscInput"
+        )
         features = discSeq(discInput)
         valid = tf.keras.layers.Dense(1)(features)
         return tf.keras.Model(discInput, valid)
@@ -320,26 +323,34 @@ class TfqSimulator(Classifier):
             shape=(), dtype=tf.string, name="circuitInput"
         )
         circuitInputParam = tf.keras.Input(
-            shape=len(self.circuitObject.inputParams), name="circuitInputParam"
+            shape=len(self.circuitObject.inputParams),
+            name="circuitInputParam",
+            dtype="float64",
         )
-        paramsInput = tf.keras.Input(shape=1, name="paramsInput")
+        paramsInput = tf.keras.Input(
+            shape=1, name="paramsInput", dtype="float64"
+        )
         paramsInput2_layer = tf.keras.layers.Dense(
             np.prod(self.circuitObject.controlParams.shape),
             input_shape=(1,),
             activation="sigmoid",
             name="paramsInputDense",
+            dtype="float64",
         )
 
         paramsInput2 = paramsInput2_layer(paramsInput)
 
         sampler = tfq.layers.ControlledPQC(
-            circuit, self.circuitObject.getReadOut()
+            circuit, self.circuitObject.getReadOut(), dtype="float32"
         )
         concat = tf.concat([circuitInputParam, paramsInput2], axis=1)
         expectation = sampler([circuitInput, concat])
 
         generatedSample = tf.keras.layers.Dense(
-            self.num_features, activation="sigmoid", name="postProcessing2"
+            self.num_features,
+            activation="sigmoid",
+            name="postProcessing2",
+            dtype="float64",
         )(expectation)
 
         generator = tf.keras.Model(
@@ -358,9 +369,14 @@ class TfqSimulator(Classifier):
 
     def getAnoGan(self, generator, discriminator, anoGan_disc_weight=1):
         # anoGan
-        oneInput = tf.keras.layers.Input(shape=1, name="oneInput")
+        oneInput = tf.keras.layers.Input(
+            shape=1, name="oneInput", dtype="float64"
+        )
         adjustInput = tf.keras.layers.Dense(
-            self.latent_dim, activation="sigmoid", name="adjustInput"
+            self.latent_dim,
+            activation="sigmoid",
+            name="adjustInput",
+            dtype="float64",
         )(oneInput)
         circuitInput2 = tf.keras.Input(
             shape=(), dtype=tf.string, name="circuitInput2"

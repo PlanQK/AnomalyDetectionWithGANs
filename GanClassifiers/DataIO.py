@@ -3,10 +3,8 @@ This file handles the input and output of the data.
 It also loads the data and prepares it.
 """
 import pandas as pd
+import numpy as np
 
-
-# TRAIN_FILEPATH = "/quantum-anomaly/input-data/trainSet.csv"
-# PREDICTION_FILEPATH = "/quantum-anomaly/input-data/predictionSet.csv"
 TRAIN_FILEPATH = "input-data/trainSet.csv"
 PREDICTION_FILEPATH = "input-data/predictionSet.csv"
 
@@ -41,7 +39,7 @@ class NoLabelSampler:
         )
 
     def __call__(self, batchSize):
-        return self.dataset.sample(batchSize).to_numpy()
+        return self.dataset.sample(batchSize).to_numpy().astype(np.float64)
 
 
 class LabelSampler:
