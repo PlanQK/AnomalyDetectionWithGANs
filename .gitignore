@@ -1,4 +1,5 @@
 **/testVenv/**
+**/venv/**
 **/__pycache__/**
 **.pyc
 **/model/**

@@ -21,6 +21,13 @@ docker run
     --mount type=bind,source=/path/to/save/model/,target=/quantum-anomaly/model \
     quantumAnomaly:1.0 classical|tfqSimulator|pennylaneSimulator|pennylaneIBMQ train|predict
 ```
+The possible backends that are currently supported are:
+```
+    classical: Purely classical generator using Tensorflow
+    tfqSimulator: Parametrized circuit with tensorflow quantum
+    pennylaneSimulator: Parametrized circuit with Pennylane
+    pennylaneIBMQ: Same as pennylaneSimulator, but with the IBM Q backend
+```
 The container can be run in training mode by specifying the `train` flag. This will train the model and save the trained parameters in the mounted volume.
 In `predict` mode the container loads the trained parameters, that were previously saved to the mounted `model` folder.
 
