@@ -46,7 +46,7 @@ class ThresholdWrapper(Model):
         result = np.array(
             [
                 1 if i >= self._threshold else 0
-                for i in self.model.predict(X.to_numpy(), iterations)
+                for i in self.model.predict(X, iterations)
             ]
         )
         return result

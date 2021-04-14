@@ -1,5 +1,5 @@
 #FROM tensorflow/tensorflow:2.1.0-gpu
-FROM ubuntu:18.04
+FROM ubuntu:latest
 
 RUN mkdir /quantum-anomaly
 WORKDIR /quantum-anomaly

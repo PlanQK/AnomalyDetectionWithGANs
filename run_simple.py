@@ -16,6 +16,7 @@ DEFAULT_ENV_VARIABLES = {
     "discriminatorIterations": 5,
     "gpWeight": 10,
     "latentVariableOptimizationIterations": 30,
+    "maxLatentDim": 10,
     "ibmqx_token": "",
     "thrMin": 0.5,
     "thrMax": 3.5,
@@ -42,6 +43,7 @@ Any further settings are done through environment variables:
     batchSize: 64  Number of samples per training step
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
+    maxLatentDim: 10  maximum dim of the latent space (num qubits)   
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
     thrMin: 0.5  Minimal value for the threshold, this depends on the dataset

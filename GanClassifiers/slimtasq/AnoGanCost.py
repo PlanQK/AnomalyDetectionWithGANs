@@ -29,7 +29,7 @@ class AnoGanCost:
         self.ansatz = ansatz
         self.init_params = []
 
-    def buildAnoGan(self, opt):
+    def buildThresholdAnoGan(self, opt):
         """Create the AnoGan classifier (wrapped in a threshold object) and optimize the threshold for the outlier score.
 
         Args:
@@ -69,6 +69,18 @@ class AnoGanCost:
         print(f"Threshold {anoGan.threshold}")
         print("finished threshold optimization")
         return anoGan
+
+    def buildAnoGan(self, opt):
+        """Create the AnoGan classifier (wrapped in a threshold object) and optimize the threshold for the outlier score.
+
+        Args:
+            opt (keras.optimizer): A optimizer such as tf.keras.Adam that is used for the creation of the AnoGan class.
+
+        Returns:
+            ThresholdWrapper: Optimized AnoGan object, ready for anomaly detection.
+        """
+        return AnoWGan(self.ansatz, opt)
+
 
     @staticmethod
     def calculateMetrics(labels, prediction):
@@ -162,7 +174,6 @@ class AnoWGan:
         Returns:
             list: a list of results with one outlier score for each input sample
         """
-        anomalyScore = []
         result = []
         for singleInputSample in inputSamples:
             singleInputSample = np.array([singleInputSample])

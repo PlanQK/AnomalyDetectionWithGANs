@@ -90,7 +90,11 @@ class Classifier:
         envMgr = EnvironmentVariableManager()
         # only allow the number of qubits to be between 1-9
         self.latent_dim = max(1, int(self.num_features / 3))
-        self.latent_dim = min(9, self.latent_dim)
+        self.latent_dim = min(int(envMgr["maxLatentDim"]), self.latent_dim)
+        # it is easier to only allow even number of qubits and then
+        # dont care that every qubit gets entangled
+        if self.latent_dim % 2:
+            self.latent_dim = self.latent_dim + 1
         self.totalNumCycles = int(envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
@@ -159,9 +163,10 @@ class Classifier:
         """
         X = load_prediction_set_no_labels()
         Y = load_prediction_labels()
-        predictions = self.anoGan.predict(X)
-        anoGanCost = AnoGanCost(self.ansatz)
-        print(anoGanCost.calculateMetrics(Y, predictions))
+        predictions = self.anoGan.predict(X.to_numpy(), int(EnvironmentVariableManager()["latentVariableOptimizationIterations"]))
+        if hasattr(self.anoGan, "_threshold"):
+            anoGanCost = AnoGanCost(self.ansatz)
+            print(anoGanCost.calculateMetrics(Y, predictions))
         return predictions
 
     @classmethod
@@ -169,9 +174,11 @@ class Classifier:
         """Load a previously trained classifier from files.
         """
         data = {}
+        threshold = None
         with open(f"model/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
-            threshold = data["threshold"]
+            if "threshold" in data:
+                threshold = data["threshold"]
             bases = data["bases"]
         qc = cls(bases=bases)
         qc.ansatz.generator.load_weights(
@@ -185,17 +192,19 @@ class Classifier:
         )
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
-        qc.anoGan = ThresholdWrapper(qc.anoGan)
-        qc.anoGan._threshold = threshold
+        if threshold:
+            qc.anoGan = ThresholdWrapper(qc.anoGan)
+            qc.anoGan._threshold = threshold
         return qc
 
     def save(self):
         """Store the trained weights and parameters.
         """
         data = {
-            "threshold": self.anoGan._threshold,
             "bases": self.circuitObject.getBases(),
         }
+        if hasattr(self.anoGan, "_threshold"):
+            data["threshold"] = self.anoGan._threshold
         self.ansatz.generator.save_weights(
             f"model/{self.__class__.__name__}_generator_weights"
         )
@@ -265,9 +274,11 @@ class ClassicalClassifier(Classifier):
     @classmethod
     def loadClassifier(cls):
         data = {}
+        threshold = None
         with open(f"model/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
-            threshold = data["threshold"]
+            if "threshold" in data:
+                threshold = data["threshold"]
         qc = cls(bases=None)
         qc.ansatz.generator.load_weights(
             f"model/{cls.__name__}_generator_weights"
@@ -280,12 +291,16 @@ class ClassicalClassifier(Classifier):
         )
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
-        qc.anoGan = ThresholdWrapper(qc.anoGan)
-        qc.anoGan._threshold = threshold
+        if threshold:
+            qc.anoGan = ThresholdWrapper(qc.anoGan)
+            qc.anoGan._threshold = threshold
         return qc
 
     def save(self):
-        data = {"threshold": self.anoGan._threshold}
+        data = {}
+        if hasattr(self.anoGan, "_threshold"):
+            data["threshold"] = self.anoGan._threshold
+
         self.ansatz.generator.save_weights(
             f"model/{self.__class__.__name__}_generator_weights"
         )
@@ -404,9 +419,12 @@ class PennylaneSimulator(Classifier):
         # copied code from the base init because we need it earlier
         self.num_features = get_feature_length()
         envMgr = EnvironmentVariableManager()
-        # only allow the number of qubits to be between 1-9
         self.latent_dim = max(1, int(self.num_features / 3))
-        self.latent_dim = min(9, self.latent_dim)
+        self.latent_dim = min(int(envMgr["maxLatentDim"]), self.latent_dim)
+        # it is easier to only allow even number of qubits and then
+        # dont care that every qubit gets entangled
+        if self.latent_dim % 2:
+            self.latent_dim = self.latent_dim + 1
         self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device("default.qubit", wires=self.latent_dim)
@@ -488,7 +506,11 @@ class PennylaneIbmQ(PennylaneSimulator):
         envMgr = EnvironmentVariableManager()
         # only allow the number of qubits to be between 1-9
         self.latent_dim = max(1, int(self.num_features / 3))
-        self.latent_dim = min(9, self.latent_dim)
+        self.latent_dim = min(int(envMgr["maxLatentDim"]), self.latent_dim)
+        # it is easier to only allow even number of qubits and then
+        # dont care that every qubit gets entangled
+        if self.latent_dim % 2:
+            self.latent_dim = self.latent_dim + 1
         self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device(
