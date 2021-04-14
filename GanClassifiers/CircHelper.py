@@ -38,6 +38,11 @@ class IdentityCircuitBase:
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
+        
+    def generateInvCycle(self):
+        raise NotImplementedError(
+            "This is the base class. You need to specialize this function"
+        )
 
     def startConfig(self):
         raise NotImplementedError(

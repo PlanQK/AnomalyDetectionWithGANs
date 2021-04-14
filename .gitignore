@@ -3,5 +3,5 @@
 **/__pycache__/**
 **.pyc
 **/model/**
-**/input-data/**
+**/input-data*/**
 .vscode/launch.json

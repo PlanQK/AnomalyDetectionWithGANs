@@ -1,3 +1,4 @@
+from GanClassifiers.DataIO import load_prediction_labels, load_prediction_set_no_labels
 import numpy as np
 import sklearn
 import skopt
@@ -47,7 +48,7 @@ class AnoGanCost:
             batchSize=int(envMgr["thresholdSearchBatchSize"])
         )
 
-        SPACE = [skopt.space.Real(0.5, 3.2, name="thr")]
+        SPACE = [skopt.space.Real(float(envMgr["thrMin"]), float(envMgr["thrMax"]), name="thr")]
 
         @skopt.utils.use_named_args(SPACE)
         def objective(thr):
@@ -69,7 +70,8 @@ class AnoGanCost:
         print("finished threshold optimization")
         return anoGan
 
-    def calculateMetrics(self, opt):
+    @staticmethod
+    def calculateMetrics(labels, prediction):
         """Calculate the metrics. This first creates a new AnoGan object and optimizes it.
         Given the stored ansatz, the metrics are calculated on the testset.
 
@@ -79,21 +81,13 @@ class AnoGanCost:
         Returns:
             dict: dict containing the results for the different metrics.
         """
-        X, Y = self.ansatz.getTestSample()
-        model = self.buildAnoGan(opt)
-        prediction = model.predict(
-            X, int(EnvironmentVariableManager()["latentVariableOptimizationIterations"])
-        )
-
         return {
-            "false positive": AnoGanCost.getFalsePositiveRate(Y, prediction),
-            "false negative": AnoGanCost.getFalseNegativeRate(Y, prediction),
-            "precision": sklearn.metrics.precision_score(Y, prediction),
-            "recall": sklearn.metrics.recall_score(Y, prediction),
-            "average precision": sklearn.metrics.average_precision_score(Y, prediction),
-            "f1 score": sklearn.metrics.f1_score(Y, prediction),
-            "optimized score": self.optimized_f1,
-            "threshold": model._threshold,
+            "false positive": AnoGanCost.getFalsePositiveRate(labels, prediction),
+            "false negative": AnoGanCost.getFalseNegativeRate(labels, prediction),
+            "precision": sklearn.metrics.precision_score(labels, prediction),
+            "recall": sklearn.metrics.recall_score(labels, prediction),
+            "average precision": sklearn.metrics.average_precision_score(labels, prediction),
+            "f1 score": sklearn.metrics.f1_score(labels, prediction),
         }
 
     @staticmethod
@@ -168,6 +162,7 @@ class AnoWGan:
         Returns:
             list: a list of results with one outlier score for each input sample
         """
+        anomalyScore = []
         result = []
         for singleInputSample in inputSamples:
             singleInputSample = np.array([singleInputSample])

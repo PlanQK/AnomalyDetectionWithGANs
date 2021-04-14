@@ -17,6 +17,8 @@ DEFAULT_ENV_VARIABLES = {
     "gpWeight": 10,
     "latentVariableOptimizationIterations": 30,
     "ibmqx_token": "",
+    "thrMin": 0.5,
+    "thrMax": 3.5,
 }
 
 
@@ -42,6 +44,8 @@ Any further settings are done through environment variables:
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
+    thrMin: 0.5  Minimal value for the threshold, this depends on the dataset
+    thrMax: 3.5  Maximal value for the threshold, this depends on the dataset
 """
 
 ganBackends = {

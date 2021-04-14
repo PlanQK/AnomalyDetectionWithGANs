@@ -25,6 +25,7 @@ from .DataIO import (
     get_feature_length,
     NoLabelSampler,
     LabelSampler,
+    load_prediction_labels,
     load_prediction_set_no_labels,
 )
 from .slimtasq import (
@@ -157,7 +158,11 @@ class Classifier:
         """Perform the prediction on the defined gan model.
         """
         X = load_prediction_set_no_labels()
-        return self.anoGan.predict(X)
+        Y = load_prediction_labels()
+        predictions = self.anoGan.predict(X)
+        anoGanCost = AnoGanCost(self.ansatz)
+        print(anoGanCost.calculateMetrics(Y, predictions))
+        return predictions
 
     @classmethod
     def loadClassifier(cls):

@@ -25,6 +25,9 @@ def load_prediction_set_no_labels():
         pass
     return data
 
+def load_prediction_labels():
+    return load_prediction_set()["Class"]
+
 
 def get_feature_length():
     # assumes labeled dataset with 1 column called class (labels)

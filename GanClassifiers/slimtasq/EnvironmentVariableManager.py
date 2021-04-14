@@ -18,7 +18,10 @@ class EnvironmentVariableManager(metaclass=Singleton):
 
     def __init__(self, defaultVariables: typing.Dict[str, typing.Any] = {}):
         self.envVariables = defaultVariables.copy()
-        self.envVariables.update(self.returnEnvironmentVariables())
+        for key in self.envVariables:
+            if key in self.returnEnvironmentVariables():
+                self.envVariables[key] = self.returnEnvironmentVariables()[key]
+        print(f"running with the following settings:\n{self.envVariables}")
 
     @staticmethod
     def returnEnvironmentVariables() -> typing.Dict[str, typing.Any]:

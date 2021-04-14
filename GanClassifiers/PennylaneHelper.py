@@ -7,6 +7,7 @@ import pennylane as qml
 
 class IdentityCircuitBase:
     """Base class for identity circuits.
+    
     Identity circuits start out with random rotations that add up in
     total to a single identity. This ensures that the optimization does
     not start in a barren plateau.
@@ -162,7 +163,7 @@ class LittleEntanglementIdentity(IdentityCircuitBase):
         # layer of entangling gates
         # last one does not need entangling gates as they cancel the inverted
         if cyclePos != 0:
-            flipFlop = cyclePos % 2
+            flipFlop = (cyclePos + self.totalNumCycles/2 - 1)% 2
             for qubitID in range(int((self.numQubits) / 2)):
                 pos1 = (flipFlop + 2 * qubitID) % self.numQubits
                 pos2 = (flipFlop + 2 * qubitID + 1) % self.numQubits
