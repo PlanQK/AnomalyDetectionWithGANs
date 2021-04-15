@@ -66,4 +66,5 @@ docker run \
     --env latentDim=5 --env trainingSteps=500 \
     qanomaly:1.0 classical predict
 ```
+During this step a new file is created in the input-data folder with the name `anoScoreResults.csv`.
 Some of the environment variables change the network size and therefore must have identical values in both the training step and the prediction step. I highly encourage to keep these environment variables set between training and prediction steps, even if they might not be needed.
