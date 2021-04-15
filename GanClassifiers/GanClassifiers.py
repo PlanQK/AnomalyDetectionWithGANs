@@ -1,4 +1,5 @@
 """This file contains different classes for the classification.
+
 One for each configuration. The main classes currently are:
     - ClassicalClassifier: The purely classical AnoGan
     - TfqSimulator: a simulation reliant on the tensorflow quantum framework
@@ -24,8 +25,6 @@ import pennylane as qml
 from .DataIO import (
     get_feature_length,
     NoLabelSampler,
-    LabelSampler,
-    load_prediction_labels,
     load_prediction_set_no_labels,
 )
 from .slimtasq import (
@@ -33,7 +32,6 @@ from .slimtasq import (
     WGanOptimization,
     AnoGanCost,
     AnoWGan,
-    ThresholdWrapper,
     EnvironmentVariableManager,
 )
 from . import CircHelper
@@ -43,6 +41,7 @@ from . import PennylaneHelper
 
 class generatorInputSampler:
     """Class to generate uniformly distributed latent variables.
+
     These are used by the generator to create new samples.
     """
 
@@ -59,9 +58,10 @@ class generatorInputSampler:
 
 
 class generatorInputSamplerTFQ(generatorInputSampler):
-    """Generate the input to the TFQ Generator. This consists of
-    the same uniformly distributed latent variables as in the
-    generatorInputSampler. TFQ additionally requires the input
+    """Generate the input to the TFQ Generator.
+
+    This consists of the same uniformly distributed latent variables as in
+    the generatorInputSampler. TFQ additionally requires the input
     state (empty circuit). The helper input (1) is another workaround
     to be able to optimize the weights of the TFQ layer (variational
     parameters).
@@ -76,9 +76,10 @@ class generatorInputSamplerTFQ(generatorInputSampler):
 
 
 class Classifier:
-    """Base class for the different Gan Classifiers. Ideally, only the
-    getGenerator and getAnoGan methods need to be specified to obtain a
-    new classifier.
+    """Base class for the different Gan Classifiers.
+
+    Ideally, only the getGenerator and getAnoGan methods need to be
+    specified to obtain a new classifier.
     """
 
     def __init__(self, bases=None):
@@ -88,13 +89,7 @@ class Classifier:
         self.anoGan = None
         self.num_features = get_feature_length()
         envMgr = EnvironmentVariableManager()
-        # only allow the number of qubits to be between 1-9
-        self.latent_dim = max(1, int(self.num_features / 3))
-        self.latent_dim = min(int(envMgr["maxLatentDim"]), self.latent_dim)
-        # it is easier to only allow even number of qubits and then
-        # dont care that every qubit gets entangled
-        if self.latent_dim % 2:
-            self.latent_dim = self.latent_dim + 1
+        self.latent_dim = int(envMgr["latentDim"])
         self.totalNumCycles = int(envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
@@ -132,6 +127,7 @@ class Classifier:
 
     def getGenerator(self, bases):
         """Return the Tensorflow model for the generator.
+
         Depending on the classifier type this includes the circuit
         specification for the quantum generator
         Args:
@@ -142,6 +138,7 @@ class Classifier:
 
     def getAnoGan(self, generator, discriminator):
         """Generate the Tensorflow model for the anogan method.
+
         This combines both the generator and discriminator into a
         complete classifier.
 
@@ -152,35 +149,31 @@ class Classifier:
         raise NotImplementedError("Need to use the derived class")
 
     def train(self):
-        """Perform the training on the defined gan model.
-        """
+        """Perform the training on the defined gan model."""
         self.opt.run(self.cost)
-        # now optimize threshold
         self.anoGan = self.cost.buildAnoGan(self.opt.opt)
 
     def predict(self):
-        """Perform the prediction on the defined gan model.
-        """
+        """Perform the prediction on the defined gan model."""
         X = load_prediction_set_no_labels()
-        Y = load_prediction_labels()
-        predictions = self.anoGan.predict(X.to_numpy(), int(EnvironmentVariableManager()["latentVariableOptimizationIterations"]))
-        if hasattr(self.anoGan, "_threshold"):
-            anoGanCost = AnoGanCost(self.ansatz)
-            print(anoGanCost.calculateMetrics(Y, predictions))
+        predictions = self.anoGan.predict(
+            X.to_numpy(),
+            int(
+                EnvironmentVariableManager()[
+                    "latentVariableOptimizationIterations"
+                ]
+            )
+        )
         return predictions
 
     @classmethod
     def loadClassifier(cls):
-        """Load a previously trained classifier from files.
-        """
+        """Load a previously trained classifier from files."""
         data = {}
-        threshold = None
         with open(f"model/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
-            if "threshold" in data:
-                threshold = data["threshold"]
-            bases = data["bases"]
-        qc = cls(bases=bases)
+        qc = cls(bases=data["bases"])
+        qc.latent_dim = data["latent_dim"]
         qc.ansatz.generator.load_weights(
             f"model/{cls.__name__}_generator_weights"
         )
@@ -189,22 +182,17 @@ class Classifier:
         )
         qc.ansatz.anoGanModel.load_weights(
             f"model/{cls.__name__}_anoGan_weights"
-        )
+        ).expect_partial()
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
-        if threshold:
-            qc.anoGan = ThresholdWrapper(qc.anoGan)
-            qc.anoGan._threshold = threshold
         return qc
 
     def save(self):
-        """Store the trained weights and parameters.
-        """
+        """Store the trained weights and parameters."""
         data = {
+            "latent_dim": self.latent_dim,
             "bases": self.circuitObject.getBases(),
         }
-        if hasattr(self.anoGan, "_threshold"):
-            data["threshold"] = self.anoGan._threshold
         self.ansatz.generator.save_weights(
             f"model/{self.__class__.__name__}_generator_weights"
         )
@@ -221,6 +209,12 @@ class Classifier:
 
 
 class ClassicalClassifier(Classifier):
+    """Use a purely classical GAN.
+
+    This class generates a classical generator that contains
+    dense layers with batch renormalization.
+    """
+
     def __init__(self, bases=None):
         super().__init__(bases=bases)
 
@@ -228,9 +222,6 @@ class ClassicalClassifier(Classifier):
         self.ansatz.latentVariableSampler = generatorInputSampler(
             self.latent_dim
         )
-        self.ansatz.getTestSample = LabelSampler()
-
-        self.ansatz.trainingDataSampler = LabelSampler()
         self.ansatz.anoGanInputs = [np.array([[1]])]
         self.cost = AnoGanCost(self.ansatz)
 
@@ -273,13 +264,12 @@ class ClassicalClassifier(Classifier):
 
     @classmethod
     def loadClassifier(cls):
+        """Load a previously trained classifier from files."""
         data = {}
-        threshold = None
         with open(f"model/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
-            if "threshold" in data:
-                threshold = data["threshold"]
         qc = cls(bases=None)
+        qc.latent_dim = data["latent_dim"]
         qc.ansatz.generator.load_weights(
             f"model/{cls.__name__}_generator_weights"
         )
@@ -288,18 +278,13 @@ class ClassicalClassifier(Classifier):
         )
         qc.ansatz.anoGanModel.load_weights(
             f"model/{cls.__name__}_anoGan_weights"
-        )
+        ).expect_partial()
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
-        if threshold:
-            qc.anoGan = ThresholdWrapper(qc.anoGan)
-            qc.anoGan._threshold = threshold
         return qc
 
     def save(self):
-        data = {}
-        if hasattr(self.anoGan, "_threshold"):
-            data["threshold"] = self.anoGan._threshold
+        data = {"latent_dim": self.latent_dim}
 
         self.ansatz.generator.save_weights(
             f"model/{self.__class__.__name__}_generator_weights"
@@ -323,12 +308,10 @@ class TfqSimulator(Classifier):
         self.ansatz.latentVariableSampler = generatorInputSamplerTFQ(
             self.latent_dim
         )
-        self.ansatz.getTestSample = LabelSampler()
         self.ansatz.anoGanInputs = [
             tfq.convert_to_tensor([cirq.Circuit()]),
             np.array([[1]]),
         ]
-        self.ansatz.trainingDataSampler = LabelSampler()
         self.cost = AnoGanCost(self.ansatz)
 
     def getGenerator(self, bases):
@@ -419,12 +402,7 @@ class PennylaneSimulator(Classifier):
         # copied code from the base init because we need it earlier
         self.num_features = get_feature_length()
         envMgr = EnvironmentVariableManager()
-        self.latent_dim = max(1, int(self.num_features / 3))
-        self.latent_dim = min(int(envMgr["maxLatentDim"]), self.latent_dim)
-        # it is easier to only allow even number of qubits and then
-        # dont care that every qubit gets entangled
-        if self.latent_dim % 2:
-            self.latent_dim = self.latent_dim + 1
+        self.latent_dim = int(envMgr["latentDim"])
         self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device("default.qubit", wires=self.latent_dim)
@@ -439,9 +417,6 @@ class PennylaneSimulator(Classifier):
         self.ansatz.latentVariableSampler = generatorInputSampler(
             self.latent_dim
         )
-        self.ansatz.getTestSample = LabelSampler()
-
-        self.ansatz.trainingDataSampler = LabelSampler()
         self.ansatz.anoGanInputs = [np.array([[1]])]
         self.cost = AnoGanCost(self.ansatz)
 
@@ -505,12 +480,7 @@ class PennylaneIbmQ(PennylaneSimulator):
         self.num_features = get_feature_length()
         envMgr = EnvironmentVariableManager()
         # only allow the number of qubits to be between 1-9
-        self.latent_dim = max(1, int(self.num_features / 3))
-        self.latent_dim = min(int(envMgr["maxLatentDim"]), self.latent_dim)
-        # it is easier to only allow even number of qubits and then
-        # dont care that every qubit gets entangled
-        if self.latent_dim % 2:
-            self.latent_dim = self.latent_dim + 1
+        self.latent_dim = int(envMgr["latentDim"])
         self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device(
@@ -529,8 +499,5 @@ class PennylaneIbmQ(PennylaneSimulator):
         self.ansatz.latentVariableSampler = generatorInputSampler(
             self.latent_dim
         )
-        self.ansatz.getTestSample = LabelSampler()
-
-        self.ansatz.trainingDataSampler = LabelSampler()
         self.ansatz.anoGanInputs = [np.array([[1]])]
         self.cost = AnoGanCost(self.ansatz)

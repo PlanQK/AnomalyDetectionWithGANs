@@ -6,20 +6,17 @@ AnoGan class/simulation is instanciated.
 import sys
 import GanClassifiers
 from GanClassifiers.slimtasq import EnvironmentVariableManager
+from GanClassifiers.DataIO import writeResultsToFile
 
 DEFAULT_ENV_VARIABLES = {
     "trainingSteps": 1000,
     "totalDepth": 4,
-    "thresholdSearchIterations": 10,
-    "thresholdSearchBatchSize": 100,
     "batchSize": 64,
     "discriminatorIterations": 5,
     "gpWeight": 10,
     "latentVariableOptimizationIterations": 30,
-    "maxLatentDim": 10,
+    "latentDim": 10,
     "ibmqx_token": "",
-    "thrMin": 0.5,
-    "thrMax": 3.5,
 }
 
 
@@ -35,19 +32,14 @@ Arguments:
     predict: Returns the outlier prediction. Requires that input-data/prediction.csv exists
 
 Any further settings are done through environment variables:
-
     trainingSteps: 1000  Number of iteration for the training of the GAN
+    latentDim: 10  size of the latent space = num qubits
     totalDepth: 4  Depth of the circuit or number of layers in the generator
-    thresholdSearchIterations: 10  Number of optimization steps to find the threshold
-    thresholdSearchBatchSize: batch size for the threshold optimization
     batchSize: 64  Number of samples per training step
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
-    maxLatentDim: 10  maximum dim of the latent space (num qubits)   
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
-    thrMin: 0.5  Minimal value for the threshold, this depends on the dataset
-    thrMax: 3.5  Maximal value for the threshold, this depends on the dataset
 """
 
 ganBackends = {
@@ -75,7 +67,10 @@ def main():
         qc.save()
     elif sys.argv[2] == "predict":
         qc = classifierClass.loadClassifier()
-        print(qc.predict())
+        results = qc.predict()
+        print(results)
+        writeResultsToFile(results)
+
     else:
         print(errorMsg)
     return

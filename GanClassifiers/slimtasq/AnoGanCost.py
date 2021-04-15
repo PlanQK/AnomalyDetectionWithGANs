@@ -1,12 +1,5 @@
-from GanClassifiers.DataIO import load_prediction_labels, load_prediction_set_no_labels
 import numpy as np
-import sklearn
-import skopt
-from .ThresholdWrapper import ThresholdWrapper
-import tensorflow as tf
 import tensorflow.keras.backend as K
-import json
-from .EnvironmentVariableManager import EnvironmentVariableManager
 
 
 class AnoGanCost:
@@ -29,47 +22,6 @@ class AnoGanCost:
         self.ansatz = ansatz
         self.init_params = []
 
-    def buildThresholdAnoGan(self, opt):
-        """Create the AnoGan classifier (wrapped in a threshold object) and optimize the threshold for the outlier score.
-
-        Args:
-            opt (keras.optimizer): A optimizer such as tf.keras.Adam that is used for the creation of the AnoGan class.
-
-        Returns:
-            ThresholdWrapper: Optimized AnoGan object, ready for anomaly detection.
-        """
-        print("Starting threshold optimization")
-        anoGan = AnoWGan(self.ansatz, opt)
-        anoGan = ThresholdWrapper(anoGan)
-
-        envMgr = EnvironmentVariableManager()
-
-        X, Y = self.ansatz.trainingDataSampler(
-            batchSize=int(envMgr["thresholdSearchBatchSize"])
-        )
-
-        SPACE = [skopt.space.Real(float(envMgr["thrMin"]), float(envMgr["thrMax"]), name="thr")]
-
-        @skopt.utils.use_named_args(SPACE)
-        def objective(thr):
-            anoGan.threshold = thr
-            predicted = anoGan.predict(
-                X, int(envMgr["latentVariableOptimizationIterations"])
-            )
-            return -sklearn.metrics.f1_score(Y.to_numpy(), predicted)
-
-        results = skopt.forest_minimize(
-            objective,
-            SPACE,
-            n_calls=int(envMgr["thresholdSearchIterations"]),
-            n_random_starts=10,
-        )
-        anoGan._threshold = results.x[0]
-        self.optimized_f1 = results.fun
-        print(f"Threshold {anoGan.threshold}")
-        print("finished threshold optimization")
-        return anoGan
-
     def buildAnoGan(self, opt):
         """Create the AnoGan classifier (wrapped in a threshold object) and optimize the threshold for the outlier score.
 
@@ -80,65 +32,6 @@ class AnoGanCost:
             ThresholdWrapper: Optimized AnoGan object, ready for anomaly detection.
         """
         return AnoWGan(self.ansatz, opt)
-
-
-    @staticmethod
-    def calculateMetrics(labels, prediction):
-        """Calculate the metrics. This first creates a new AnoGan object and optimizes it.
-        Given the stored ansatz, the metrics are calculated on the testset.
-
-        Args:
-            opt (tf.keras.optimizer): Optimizer required for the AnoGan architecture e.g. Adam optimizer.
-
-        Returns:
-            dict: dict containing the results for the different metrics.
-        """
-        return {
-            "false positive": AnoGanCost.getFalsePositiveRate(labels, prediction),
-            "false negative": AnoGanCost.getFalseNegativeRate(labels, prediction),
-            "precision": sklearn.metrics.precision_score(labels, prediction),
-            "recall": sklearn.metrics.recall_score(labels, prediction),
-            "average precision": sklearn.metrics.average_precision_score(labels, prediction),
-            "f1 score": sklearn.metrics.f1_score(labels, prediction),
-        }
-
-    @staticmethod
-    def getFalsePositiveRate(Y, prediction):
-        """Calculate the false positive rate (FPR).
-
-        Args:
-            Y (list): List of actual classes
-            prediction (list): List of predictions
-
-        Returns:
-            float: false positive rate
-        """
-        testingsetNegatives = len(Y == 0)
-        unique, counts = np.unique(Y.values - prediction, return_counts=True)
-        classificationInfo = dict(zip(unique, counts))
-        try:
-            return float(classificationInfo.get(-1, 0)) / testingsetNegatives
-        except:
-            return float("nan")
-
-    @staticmethod
-    def getFalseNegativeRate(Y, prediction):
-        """Calculate th false negative rate (FNR)
-
-        Args:
-            Y (list): list of actual results
-            prediction (list): list of predictions
-
-        Returns:
-            float: false negative rate
-        """
-        testingsetPositives = len(Y == 1)
-        unique, counts = np.unique(Y.values - prediction, return_counts=True)
-        classificationInfo = dict(zip(unique, counts))
-        try:
-            return float(classificationInfo.get(1, 0)) / testingsetPositives
-        except:
-            return float("nan")
 
 
 class AnoWGan:

@@ -211,15 +211,9 @@ class AnoGanAnsatz(GanAnsatz):
             among multiple simulations.
         """
         super().__init__(name)
-        self._testSampler = None
         self._anoGanModel = None
         self._anoGanInputs = None
-        self._trainingDataSampler = None
         self._discriminatorWeight = 1
-
-    @property
-    def getTestSample(self):
-        return self._testSampler
 
     @property
     def anoGanModel(self):
@@ -237,10 +231,6 @@ class AnoGanAnsatz(GanAnsatz):
     def anoGanModel(self, network):
         self._anoGanModel = network
 
-    @getTestSample.setter
-    def getTestSample(self, sampler):
-        self._testSampler = sampler
-
     @property
     def anoGanInputs(self):
         # todo make user supplied
@@ -250,13 +240,6 @@ class AnoGanAnsatz(GanAnsatz):
     def anoGanInputs(self, element):
         self._anoGanInputs = element
 
-    @property
-    def trainingDataSampler(self):
-        return self._trainingDataSampler
-
-    @trainingDataSampler.setter
-    def trainingDataSampler(self, sampler):
-        self._trainingDataSampler = sampler
 
     def checkAnsatz(self):
         """Perform a check if all elements are set in this Ansatz object.
@@ -280,14 +263,10 @@ class AnoGanAnsatz(GanAnsatz):
             errorMsg += "The latentVariableSampler has not been set.\n"
         if self._trueInputSampler is None:
             errorMsg += "The trueInputSampler has not been set.\n"
-        if self._testSampler is None:
-            errorMsg += "The testSampler has not been set.\n"
         if self._anoGanModel is None:
             errorMsg += "The anoGanModel has not been set.\n"
         if self._anoGanInputs is None:
             errorMsg += "The anoGanInputs have not been set.\n"
-        if self._trainingDataSampler is None:
-            errorMsg += "The trainingDataSampler has not been set.\n"
         if errorMsg:
             raise RuntimeError(
                 f"Ansatz object: {self} did not pass sanity check. The "
@@ -306,8 +285,6 @@ class AnoGanAnsatz(GanAnsatz):
             # "_anoGanInputs",
             "_latentVariableSampler",
             "_name",
-            "_testSampler",
-            "_trainingDataSampler",
             "_trueInputSampler",
             # "_anoGanModel",
             "_discriminator",
@@ -356,8 +333,6 @@ class AnoGanAnsatz(GanAnsatz):
             "_generator",
             "_latentVariableSampler",
             "_name",
-            "_testSampler",
-            "_trainingDataSampler",
             "_trueInputSampler",
         ]
 
