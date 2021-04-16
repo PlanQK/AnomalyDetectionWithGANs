@@ -56,6 +56,7 @@ class AnoWGan:
         self.ansatz.discriminator.trainable = False
         self.ansatz.generator.trainable = False
         self.network.compile(optimizer=opt, loss=AnoWGan.loss)
+        self.anoganWeights = self.ansatz.anoGanModel.get_weights()
 
     def predict(self, inputSamples, iterations=20):
         """Calculate the outlier score for a list of input samples.
@@ -69,6 +70,9 @@ class AnoWGan:
         """
         result = []
         for singleInputSample in inputSamples:
+            # reset the weights so that there is no drift in latent variables from
+            # classification to classification
+            self.ansatz.anoGanModel.set_weights(self.anoganWeights)
             singleInputSample = np.array([singleInputSample])
             discriminatorOutput = self.ansatz.discriminator.predict(singleInputSample)
             lossValue = self.network.fit(

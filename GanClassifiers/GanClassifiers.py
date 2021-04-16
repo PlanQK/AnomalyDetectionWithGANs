@@ -115,7 +115,9 @@ class Classifier:
         """
         discSeq = tf.keras.Sequential()
         discSeq.add(tf.keras.layers.Dense(self.num_features))
+        discSeq.add(tf.keras.layers.LeakyReLU(alpha=0.05))
         discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
+        discSeq.add(tf.keras.layers.LeakyReLU(alpha=0.05))
         discSeq.add(tf.keras.layers.Dense(max(1, int(self.num_features / 2))))
 
         discInput = tf.keras.layers.Input(
