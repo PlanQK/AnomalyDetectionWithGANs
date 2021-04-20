@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow.keras.backend as K
-
+import tensorflow as tf
+from .EnvironmentVariableManager import EnvironmentVariableManager
 
 class AnoGanCost:
     """Calculate the costs associated with anomaly detection for the AnoGan architecture
@@ -55,8 +56,28 @@ class AnoWGan:
         self.network = ansatz.anoGanModel
         self.ansatz.discriminator.trainable = False
         self.ansatz.generator.trainable = False
-        self.network.compile(optimizer=opt, loss=AnoWGan.loss)
+        self.network.compile(optimizer=tf.keras.optimizers.Adam(0.1), loss=self.loss)
         self.anoganWeights = self.ansatz.anoGanModel.get_weights()
+        self.initializer = tf.random_uniform_initializer(minval=0.0, maxval=1.0)
+        self.numberRandomGuesses = int(EnvironmentVariableManager()["latentVarRandomGuesses"])
+
+    def initializeAnomalyRun(self, inputSample):
+        """We reinitialize the network and perform several random guesses
+        to find the random starting values that result in the smallest
+        distance to the input sample.
+        """
+        #first reset the network
+        self.ansatz.anoGanModel.set_weights(self.anoganWeights)
+        # pick the best set of latent variables from a set of uniformly
+        # distributed random variables
+        distances = []
+        proposedWeights = []
+        for i in range(self.numberRandomGuesses):
+            proposedWeights.append(self.initializer(self.network.layers[1].get_weights()[0].shape))
+            self.network.layers[1].set_weights([proposedWeights[-1],])
+            distances.append(np.sum(np.abs(inputSample - self.network.predict(self.ansatz.anoGanInputs,)[0])))
+        self.network.layers[1].set_weights([proposedWeights[np.argmin(distances)],])
+        
 
     def predict(self, inputSamples, iterations=20):
         """Calculate the outlier score for a list of input samples.
@@ -70,26 +91,24 @@ class AnoWGan:
         """
         result = []
         for singleInputSample in inputSamples:
-            # reset the weights so that there is no drift in latent variables from
-            # classification to classification
-            self.ansatz.anoGanModel.set_weights(self.anoganWeights)
+            self.initializeAnomalyRun(singleInputSample)
             singleInputSample = np.array([singleInputSample])
             discriminatorOutput = self.ansatz.discriminator.predict(singleInputSample)
             lossValue = self.network.fit(
                 self.ansatz.anoGanInputs,
                 [
                     singleInputSample / self.ansatz.discriminatorWeight,
-                    discriminatorOutput,
+                    discriminatorOutput * self.ansatz.discriminatorWeight,
                 ],
                 batch_size=1,
                 epochs=iterations,
+                initial_epoch=0,
                 verbose=0,
             )
             result.append(lossValue.history["loss"][-1])
         return result
 
-    @staticmethod
-    def loss(yTrue, yPred):
+    def loss(self, yTrue, yPred):
         """Calculate the distance between generated and real sample.
 
         Args:
@@ -99,7 +118,12 @@ class AnoWGan:
         Returns:
             float: distance between generated and real sample
         """
-        return K.sum(K.abs(yTrue - yPred))
+        # cost for too high and low weights we want to keep them in the interval [0, 1]
+        weights = self.network.layers[1].weights[0]
+        offset = K.sum(K.exp(tf.ones(weights.shape, dtype=tf.dtypes.float64)))
+        weights = K.square(weights*2 - 1)
+        weightCost = K.sum(K.exp(tf.clip_by_value(weights, 1, 10000)))
+        return K.sum(K.abs(yTrue - yPred)) + weightCost - offset
 
     def continueTraining(self):
         """If the network is trained afterwards again, set the trainability flag back to true.

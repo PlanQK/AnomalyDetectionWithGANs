@@ -7,6 +7,7 @@ import sys
 import GanClassifiers
 from GanClassifiers.slimtasq import EnvironmentVariableManager
 from GanClassifiers.DataIO import writeResultsToFile
+import tensorflow as tf
 
 DEFAULT_ENV_VARIABLES = {
     "trainingSteps": 1000,
@@ -14,6 +15,7 @@ DEFAULT_ENV_VARIABLES = {
     "batchSize": 64,
     "discriminatorIterations": 5,
     "gpWeight": 10,
+    "latentVarRandomGuesses": 10,
     "latentVariableOptimizationIterations": 30,
     "latentDim": 10,
     "ibmqx_token": "",
@@ -38,6 +40,7 @@ Any further settings are done through environment variables:
     batchSize: 64  Number of samples per training step
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
+    latentVarRandomGuesses: 10  Number of random guesses for the latent variables
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
 """

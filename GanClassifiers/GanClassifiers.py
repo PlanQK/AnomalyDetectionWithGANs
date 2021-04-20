@@ -93,7 +93,7 @@ class Classifier:
         self.totalNumCycles = int(envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
-            tf.keras.optimizers.Adam(0.0002, beta_1=0.5),
+            tf.keras.optimizers.Adam(0.005, beta_1=0.5),
             "WGAN",
             n_steps=int(envMgr["trainingSteps"]),
             updateInterval=int(envMgr["trainingSteps"]) + 10,
