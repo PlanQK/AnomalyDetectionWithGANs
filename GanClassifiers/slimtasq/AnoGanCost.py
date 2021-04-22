@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow.keras.backend as K
 import tensorflow as tf
+import tqdm
+import skopt
 from .EnvironmentVariableManager import EnvironmentVariableManager
 
 class AnoGanCost:
@@ -52,6 +54,7 @@ class AnoWGan:
         self.curInput = None
         # since input layer can't be trained: create a new network that has an additional layer directly after the input
         # only this layer gets trained
+        envMgr = EnvironmentVariableManager()
         self.ansatz = ansatz
         self.network = ansatz.anoGanModel
         self.ansatz.discriminator.trainable = False
@@ -59,7 +62,7 @@ class AnoWGan:
         self.network.compile(optimizer=tf.keras.optimizers.Adam(0.1), loss=self.loss)
         self.anoganWeights = self.ansatz.anoGanModel.get_weights()
         self.initializer = tf.random_uniform_initializer(minval=0.0, maxval=1.0)
-        self.numberRandomGuesses = int(EnvironmentVariableManager()["latentVarRandomGuesses"])
+        self.optimizer = envMgr["latentVariableOptimizer"]
 
     def initializeAnomalyRun(self, inputSample):
         """We reinitialize the network and perform several random guesses
@@ -68,16 +71,62 @@ class AnoWGan:
         """
         #first reset the network
         self.ansatz.anoGanModel.set_weights(self.anoganWeights)
+
+        
+
+    def optimizeWithTF(self, discriminatorOutput, singleInputSample, iterations):
         # pick the best set of latent variables from a set of uniformly
         # distributed random variables
         distances = []
         proposedWeights = []
-        for i in range(self.numberRandomGuesses):
+        for i in range(10):
             proposedWeights.append(self.initializer(self.network.layers[1].get_weights()[0].shape))
             self.network.layers[1].set_weights([proposedWeights[-1],])
-            distances.append(np.sum(np.abs(inputSample - self.network.predict(self.ansatz.anoGanInputs,)[0])))
+            distances.append(np.sum(np.abs(singleInputSample - self.network.predict(self.ansatz.anoGanInputs,)[0])))
         self.network.layers[1].set_weights([proposedWeights[np.argmin(distances)],])
-        
+
+        # now start the optimization
+        lossValue = self.network.fit(
+            self.ansatz.anoGanInputs,
+            [
+                singleInputSample / self.ansatz.discriminatorWeight,
+                discriminatorOutput * self.ansatz.discriminatorWeight,
+            ],
+            batch_size=1,
+            epochs=iterations,
+            initial_epoch=0,
+            verbose=0,
+        )
+
+        return lossValue.history["loss"][-1]
+
+    def optimizeWithForrestMinimize(self, discriminatorOutput, singleInputSample, iterations):
+        def loss(latentVars):
+            latentVars = np.array(latentVars).reshape(
+                self.network.layers[1].get_weights()[0].shape
+            )
+            self.network.layers[1].set_weights([latentVars, ])
+            yPred = self.network.predict(self.ansatz.anoGanInputs,)
+            nonlocal singleInputSample
+            nonlocal discriminatorOutput
+            residualCost = K.sum(K.abs(singleInputSample - yPred[0]))
+            discriminatorCost = K.sum(K.abs(discriminatorOutput - yPred[1]))
+            return float(
+                residualCost / self.ansatz.discriminatorWeight +
+                discriminatorCost * self.ansatz.discriminatorWeight
+            )
+
+        weights = self.network.layers[1].get_weights()[0]
+        dimensions = [(0.0,1.0)] * weights.shape[1]
+        result = skopt.forest_minimize(loss, dimensions, n_points=200, n_calls=iterations)
+        return loss(result.x)
+
+    def optimizedCost(self, discriminatorOutput, singleInputSample, iterations):
+        if self.optimizer == "TF":
+            return self.optimizeWithTF(discriminatorOutput, singleInputSample, iterations)
+        if self.optimizer == "forest_minimize":
+            return self.optimizeWithForrestMinimize(discriminatorOutput, singleInputSample, iterations)
+        raise NotImplementedError("The optimizer you chose is not specified")
 
     def predict(self, inputSamples, iterations=20):
         """Calculate the outlier score for a list of input samples.
@@ -90,22 +139,11 @@ class AnoWGan:
             list: a list of results with one outlier score for each input sample
         """
         result = []
-        for singleInputSample in inputSamples:
+        for singleInputSample in tqdm.tqdm(inputSamples):
             self.initializeAnomalyRun(singleInputSample)
             singleInputSample = np.array([singleInputSample])
             discriminatorOutput = self.ansatz.discriminator.predict(singleInputSample)
-            lossValue = self.network.fit(
-                self.ansatz.anoGanInputs,
-                [
-                    singleInputSample / self.ansatz.discriminatorWeight,
-                    discriminatorOutput * self.ansatz.discriminatorWeight,
-                ],
-                batch_size=1,
-                epochs=iterations,
-                initial_epoch=0,
-                verbose=0,
-            )
-            result.append(lossValue.history["loss"][-1])
+            result.append(self.optimizedCost(discriminatorOutput, singleInputSample, iterations))
         return result
 
     def loss(self, yTrue, yPred):

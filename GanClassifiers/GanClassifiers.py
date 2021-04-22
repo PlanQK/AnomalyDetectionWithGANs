@@ -93,7 +93,7 @@ class Classifier:
         self.totalNumCycles = int(envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
-            tf.keras.optimizers.Adam(0.005, beta_1=0.5),
+            tf.keras.optimizers.Adam(0.01, beta_1=0.5),
             "WGAN",
             n_steps=int(envMgr["trainingSteps"]),
             updateInterval=int(envMgr["trainingSteps"]) + 10,
@@ -172,18 +172,18 @@ class Classifier:
     def loadClassifier(cls):
         """Load a previously trained classifier from files."""
         data = {}
-        with open(f"model/{cls.__name__}_other_parameters") as json_file:
+        with open(f"model/checkpoint/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
         qc = cls(bases=data["bases"])
         qc.latent_dim = data["latent_dim"]
         qc.ansatz.generator.load_weights(
-            f"model/{cls.__name__}_generator_weights"
+            f"model/checkpoint/{cls.__name__}_generator_weights"
         )
         qc.ansatz.discriminator.load_weights(
-            f"model/{cls.__name__}_discriminator_weights"
+            f"model/checkpoint/{cls.__name__}_discriminator_weights"
         )
         qc.ansatz.anoGanModel.load_weights(
-            f"model/{cls.__name__}_anoGan_weights"
+            f"model/checkpoint/{cls.__name__}_anoGan_weights"
         ).expect_partial()
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
@@ -196,16 +196,16 @@ class Classifier:
             "bases": self.circuitObject.getBases(),
         }
         self.ansatz.generator.save_weights(
-            f"model/{self.__class__.__name__}_generator_weights"
+            f"model/checkpoint/{self.__class__.__name__}_generator_weights"
         )
         self.ansatz.discriminator.save_weights(
-            f"model/{self.__class__.__name__}_discriminator_weights"
+            f"model/checkpoint/{self.__class__.__name__}_discriminator_weights"
         )
         self.ansatz.anoGanModel.save_weights(
-            f"model/{self.__class__.__name__}_anoGan_weights"
+            f"model/checkpoint/{self.__class__.__name__}_anoGan_weights"
         )
         with open(
-            f"model/{self.__class__.__name__}_other_parameters", "w"
+            f"model/checkpoint/{self.__class__.__name__}_other_parameters", "w"
         ) as json_file:
             json.dump(data, json_file)
 
@@ -268,18 +268,18 @@ class ClassicalClassifier(Classifier):
     def loadClassifier(cls):
         """Load a previously trained classifier from files."""
         data = {}
-        with open(f"model/{cls.__name__}_other_parameters") as json_file:
+        with open(f"model/checkpoint/{cls.__name__}_other_parameters") as json_file:
             data = json.load(json_file)
         qc = cls(bases=None)
         qc.latent_dim = data["latent_dim"]
         qc.ansatz.generator.load_weights(
-            f"model/{cls.__name__}_generator_weights"
+            f"model/checkpoint/{cls.__name__}_generator_weights"
         )
         qc.ansatz.discriminator.load_weights(
-            f"model/{cls.__name__}_discriminator_weights"
+            f"model/checkpoint/{cls.__name__}_discriminator_weights"
         )
         qc.ansatz.anoGanModel.load_weights(
-            f"model/{cls.__name__}_anoGan_weights"
+            f"model/checkpoint/{cls.__name__}_anoGan_weights"
         ).expect_partial()
 
         qc.anoGan = AnoWGan(qc.ansatz, qc.opt.opt)
@@ -289,16 +289,16 @@ class ClassicalClassifier(Classifier):
         data = {"latent_dim": self.latent_dim}
 
         self.ansatz.generator.save_weights(
-            f"model/{self.__class__.__name__}_generator_weights"
+            f"model/checkpoint/{self.__class__.__name__}_generator_weights"
         )
         self.ansatz.discriminator.save_weights(
-            f"model/{self.__class__.__name__}_discriminator_weights"
+            f"model/checkpoint/{self.__class__.__name__}_discriminator_weights"
         )
         self.ansatz.anoGanModel.save_weights(
-            f"model/{self.__class__.__name__}_anoGan_weights"
+            f"model/checkpoint/{self.__class__.__name__}_anoGan_weights"
         )
         with open(
-            f"model/{self.__class__.__name__}_other_parameters", "w"
+            f"model/checkpoint/{self.__class__.__name__}_other_parameters", "w"
         ) as json_file:
             json.dump(data, json_file)
 

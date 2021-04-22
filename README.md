@@ -31,7 +31,7 @@ The possible backends that are currently supported are:
 The container can be run in training mode by specifying the `train` flag. This will train the model and save the trained parameters in the mounted volume.
 In `predict` mode the container loads the trained parameters, that were previously saved to the mounted `model` folder.
 
-For both runs the following files need to be present in the `input-data` directory:
+The `model` folder will store all data relevant to a model. This includes the training and prediction data and the trained weights. The weights will be created during the `train` run mode. During the training and predictions steps the following files need to be present in the `model/input-data` directory:
 - `trainSet.csv`
 - `predictionSet.csv`
 
@@ -44,7 +44,7 @@ There are many settings that can be adjusted through environment variables. Add 
     totalDepth: 4  Depth of the circuit or number of layers in the generator
     batchSize: 64  Number of samples per training step
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
-    gpWeight: 10  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
+    gpWeight: 1.0  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
     latentVarRandomGuesses: 10  Number of random guesses for the latent variables
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
@@ -53,8 +53,7 @@ There are many settings that can be adjusted through environment variables. Add 
 A sample command for a training run is therefore:
 ```
 docker run \
-    --mount type=bind,source=/path/to/input/data/,target=/quantum-anomaly/input-data \
-    --mount type=bind,source=/path/to/save/model/,target=/quantum-anomaly/model \
+    --mount type=bind,source=/path/to/input/model/,target=/quantum-anomaly/model \
     --env latentDim=5 --env trainingSteps=500 \
     qanomaly:1.0 classical train
 ```
@@ -62,8 +61,7 @@ docker run \
 The anomaly scores on the prediction set are then obtained by the following command:
 ```
 docker run \
-    --mount type=bind,source=/path/to/input/data/,target=/quantum-anomaly/input-data \
-    --mount type=bind,source=/path/to/save/model/,target=/quantum-anomaly/model \
+    --mount type=bind,source=/path/to/input/model/,target=/quantum-anomaly/model \
     --env latentDim=5 --env trainingSteps=500 \
     qanomaly:1.0 classical predict
 ```
