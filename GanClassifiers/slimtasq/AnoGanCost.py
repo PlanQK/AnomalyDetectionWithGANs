@@ -72,18 +72,16 @@ class AnoWGan:
         #first reset the network
         self.ansatz.anoGanModel.set_weights(self.anoganWeights)
 
-        
-
     def optimizeWithTF(self, discriminatorOutput, singleInputSample, iterations):
         # pick the best set of latent variables from a set of uniformly
         # distributed random variables
         distances = []
         proposedWeights = []
         for i in range(10):
-            proposedWeights.append(self.initializer(self.network.layers[1].get_weights()[0].shape))
-            self.network.layers[1].set_weights([proposedWeights[-1],])
+            proposedWeights.append(self.initializer(self.network.get_layer(name="adjustInput").get_weights()[0].shape))
+            self.network.get_layer(name="adjustInput").set_weights([proposedWeights[-1],])
             distances.append(np.sum(np.abs(singleInputSample - self.network.predict(self.ansatz.anoGanInputs,)[0])))
-        self.network.layers[1].set_weights([proposedWeights[np.argmin(distances)],])
+        self.network.get_layer(name="adjustInput").set_weights([proposedWeights[np.argmin(distances)],])
 
         # now start the optimization
         lossValue = self.network.fit(
@@ -103,9 +101,9 @@ class AnoWGan:
     def optimizeWithForrestMinimize(self, discriminatorOutput, singleInputSample, iterations):
         def loss(latentVars):
             latentVars = np.array(latentVars).reshape(
-                self.network.layers[1].get_weights()[0].shape
+                self.network.get_layer(name="adjustInput").get_weights()[0].shape
             )
-            self.network.layers[1].set_weights([latentVars, ])
+            self.network.get_layer(name="adjustInput").set_weights([latentVars, ])
             yPred = self.network.predict(self.ansatz.anoGanInputs,)
             nonlocal singleInputSample
             nonlocal discriminatorOutput
@@ -115,8 +113,7 @@ class AnoWGan:
                 residualCost / self.ansatz.discriminatorWeight +
                 discriminatorCost * self.ansatz.discriminatorWeight
             )
-
-        weights = self.network.layers[1].get_weights()[0]
+        weights = self.network.get_layer(name="adjustInput").get_weights()[0]
         dimensions = [(0.0,1.0)] * weights.shape[1]
         result = skopt.forest_minimize(loss, dimensions, n_points=200, n_calls=iterations)
         return loss(result.x)
@@ -157,7 +154,7 @@ class AnoWGan:
             float: distance between generated and real sample
         """
         # cost for too high and low weights we want to keep them in the interval [0, 1]
-        weights = self.network.layers[1].weights[0]
+        weights = self.network.get_layer(name="adjustInput").weights[0]
         offset = K.sum(K.exp(tf.ones(weights.shape, dtype=tf.dtypes.float64)))
         weights = K.square(weights*2 - 1)
         weightCost = K.sum(K.exp(tf.clip_by_value(weights, 1, 10000)))

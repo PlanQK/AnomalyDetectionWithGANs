@@ -93,7 +93,7 @@ class Classifier:
         self.totalNumCycles = int(envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
-            tf.keras.optimizers.Adam(0.01, beta_1=0.5),
+            tf.keras.optimizers.Adam(float(envMgr["adamTrainingRate"]), beta_1=0.5),
             "WGAN",
             n_steps=int(envMgr["trainingSteps"]),
             updateInterval=int(envMgr["trainingSteps"]) + 10,
@@ -381,6 +381,7 @@ class TfqSimulator(Classifier):
             self.latent_dim,
             activation="sigmoid",
             name="adjustInput",
+            use_bias=False,
             dtype="float64",
         )(oneInput)
         circuitInput2 = tf.keras.Input(
