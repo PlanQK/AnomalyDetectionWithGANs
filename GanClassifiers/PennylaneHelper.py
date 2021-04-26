@@ -45,7 +45,7 @@ class IdentityCircuitBase:
     def buildCircuit(self, params):
         # if odd then number of cycles then add an empty layer at the front
         if self.totalNumCycles % 2:
-            self.generateCycle(-1)
+            self.generateCycle(params, -1)
 
         for i in range(int(self.totalNumCycles / 2)):
             self.generateCycle(params, i)
@@ -56,7 +56,7 @@ class IdentityCircuitBase:
 
     def initializeQubits(self, inputs):
         for i in range(self.numQubits):
-            qml.RX(inputs[i], wires=i)
+            qml.RX(np.pi*inputs[i], wires=i)
 
     def setBases(self, bases):
         assert len(bases) == int(
@@ -145,7 +145,7 @@ class LittleEntanglementIdentity(IdentityCircuitBase):
                 params[(cyclePos + add) * self.numQubits + qubitID],
                 wires=qubitID,
             )
-        # layer of entangling gates
+        # layer of entangling gates 
         # last one does not need entangling gates as they cancel the inverted
         if cyclePos == int(self.totalNumCycles / 2) - 1:
             return
