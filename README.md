@@ -17,7 +17,6 @@ This builds the docker image `qanomaly:1.0`.
 After the image was created. A container can be started by:
 ```
 docker run \
-    --mount type=bind,source=/path/to/input/data/,target=/quantum-anomaly/input-data \
     --mount type=bind,source=/path/to/save/model/,target=/quantum-anomaly/model \
     qanomaly:1.0 classical|tfqSimulator|pennylaneSimulator|pennylaneIBMQ train|predict
 ```
