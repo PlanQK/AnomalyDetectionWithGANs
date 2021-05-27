@@ -17,7 +17,6 @@ This builds the docker image `qanomaly:1.0`.
 After the image was created. A container can be started by:
 ```
 docker run \
-    --mount type=bind,source=/path/to/input/data/,target=/quantum-anomaly/input-data \
     --mount type=bind,source=/path/to/save/model/,target=/quantum-anomaly/model \
     qanomaly:1.0 classical|tfqSimulator|pennylaneSimulator|pennylaneIBMQ train|predict
 ```
@@ -43,6 +42,7 @@ There are many settings that can be adjusted through environment variables. Add 
     latentDim: 10  size of the latent space = num qubits
     totalDepth: 4  Depth of the circuit or number of layers in the generator
     batchSize: 64  Number of samples per training step
+    adamTrainingRate: 0.01  Training rate for the Adam optimizer
     discriminatorIterations: 5  How often does the discriminator update its weights vs Generator
     gpWeight: 1.0  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
     latentVarRandomGuesses: 10  Number of random guesses for the latent variables

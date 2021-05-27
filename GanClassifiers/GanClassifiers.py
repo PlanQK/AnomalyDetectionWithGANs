@@ -409,6 +409,14 @@ class PennylaneSimulator(Classifier):
         self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device("default.qubit", wires=self.latent_dim)
+        #self.device = qml.device(
+        #   'qiskit.ibmq',
+        #   wires=self.latent_dim,
+        #   backend='ibmq_16_melbourne',
+        #   hub='MYHUB',  # optional
+        #   group='MYGROUP',  # optional
+        #   project='anoGan'  # optional
+        # )
 
         self.circuitObject = PennylaneHelper.LittleEntanglementIdentity(
             self.latent_dim, self.totalNumCycles
