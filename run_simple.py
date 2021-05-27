@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """This file is the entrypoint for the docker run command.
 Here, the parameters are interpreted and the respective
 AnoGan class/simulation is instanciated.
@@ -19,6 +20,7 @@ DEFAULT_ENV_VARIABLES = {
     "latentVariableOptimizationIterations": 30,
     "latentDim": 10,
     "ibmqx_token": "",
+    "backend": "ibmq_16_melbourne",
 }
 
 

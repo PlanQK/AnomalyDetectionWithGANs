@@ -62,6 +62,7 @@ class GanOptimization:
         self.step_counter = 0
         super().reset()
 
+    __axstep=0
     def _step(self, cost):
         """Perform a single step of the optimization.
         This step consists of several updates for the discriminator parameters
@@ -71,6 +72,8 @@ class GanOptimization:
             cost (GanCost): Metrics for the performance of the gan. Main
                     requirement is the GanAnsatz stored in the cost object.
         """
+        self.__axstep=self.__axstep+1
+        print("GAN step ",self.__axstep);
         real_images = cost.ansatz.trueInputSampler(self.batchSize)
         for i in range(self.discriminatorIterations):
             # Get the latent vector

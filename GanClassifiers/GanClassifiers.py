@@ -473,6 +473,7 @@ class PennylaneSimulator(Classifier):
             ],
         )
 
+from qiskit import IBMQ
 
 class PennylaneIbmQ(PennylaneSimulator):
     """Run the Pennylane QWGan with the IBM Quantum backend
@@ -486,11 +487,22 @@ class PennylaneIbmQ(PennylaneSimulator):
         self.latent_dim = int(envMgr["latentDim"])
         self.totalNumCycles = int(envMgr["totalDepth"])
         # Pennylane specifics
+        
+        IBMQ.load_account()
+
+        providers=IBMQ.providers()
+
+        print(providers)
+
+        provider=providers[-1]
+        
         self.device = qml.device(
             "qiskit.ibmq",
             wires=self.latent_dim,
-            backend="ibmq_qasm_simulator",
-            ibmqx_token=envMgr["ibmqx_token"],
+#            backend="ibmq_qasm_simulator",
+            backend=envMgr["backend"],#"ibmq_16_melbourne",
+            provider=provider,
+#            ibmqx_token=envMgr["ibmqx_token"],
         )
 
         self.circuitObject = PennylaneHelper.LittleEntanglementIdentity(

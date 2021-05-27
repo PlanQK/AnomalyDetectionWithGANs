@@ -22,6 +22,7 @@ class EnvironmentVariableManager(metaclass=Singleton):
             if key in self.returnEnvironmentVariables():
                 self.envVariables[key] = self.returnEnvironmentVariables()[key]
         print(f"running with the following settings:\n{self.envVariables}")
+        print(" estimated QC training runtime (minutes, for 60s/roundtrip): %d"%(int(self.envVariables["trainingSteps"])*int(self.envVariables["batchSize"])*(1+int(self.envVariables["discriminatorIterations"]))))
 
     @staticmethod
     def returnEnvironmentVariables() -> typing.Dict[str, typing.Any]:
