@@ -1,6 +1,6 @@
 ### Folder QuantumClassifierDocker contains all ressources for Fraud Detection on the Xente-dataset 'training.csv'
 
-# First step: TRANSFORMING RAW DATA
+# First step: Transforming raw data
 
 Raw data is stored in 'training.csv'. To transform it into processable dataset execute:
 
@@ -8,7 +8,7 @@ Raw data is stored in 'training.csv'. To transform it into processable dataset e
 
 Now, processable dataset 'training.csv' is in 'transformed'-Folder.
 
-# Second step: PREPROCESSING OF PROCESSABLE DATA
+# Second step: Preprocessing of processable data
 
 *NOTE: Before every new preprocessing execute from terminal: 'make cleaning', so that the data from previous usage is deleted*
 
@@ -30,7 +30,7 @@ distribution by setting a different parameter for the 'test_size' parameter in t
 
 Also, you might want to oversample the prediction set to contain more fraudulent transactions. For that, change 'testing.to_csv' to 'testing_os.to_csv' at the end of the preprocessData.py script.
 
-# Third step: TRAINING OF THE MODEL
+# Third step: Training of the model
 
 You can run the programm in different modi, classical or quantum. To choose the classical option, set the
 'MODUS' parameter in the Makefile to 'classical', to run the quantum version implemented with Tensorflow set it
@@ -43,7 +43,7 @@ To start the training of the GAN execute the terminal command
 where N is the number of jobs you want to run in parallel.
 Now, in every model-folder the parameters optimized during training are stored in the 'checkpoint' subfolder. 
 
-# Fourth step: PREDICTION
+# Fourth step: Prediction
 
 From Terminal execute command
 
@@ -54,7 +54,7 @@ Now, for every input in the 'predictionSet.csv'-file an anomaly score is calcula
 as 'j.csv' in the 'results' folder, where j is the j-th model-folder (corresponding to the j-th repetition).
 
 
-# Fifth step: EVALUATION 
+# Fifth step: Evaluation 
 
 First, you'll need to set the 'l'-parameter in the 'metrics_new.py' script to the number of repetitions you ran.
 After that, for evaluating the results of the prediction, execute from terminal:
@@ -68,7 +68,7 @@ For every threshold in the threshold-grid, this file contains the False Positive
 Additionally, in the QuantumClassifierDocker folder a .csv-file 'optimal_metrics.csv' is created containing the maximal F1-Score and corresponding threshold for every repetition respectively.
 
 
-# Sixth step: COMPARISON WITH OTHER UNSUPERVISED METHODS
+# Sixth step: Comparison with other unsupervised methods
 
 To compare the results of the evaluation of AnoWGan with that of other unsupervised ML methods, the 
 'IsolationForest' and 'OneClassSVM' method can be evaluated. 
