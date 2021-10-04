@@ -9,7 +9,7 @@ A system running Docker.
 ## How to build
 Run the command
 ```
-docker build -t quantumAnomaly:1.0 .
+docker build -t qanomaly:1.0 .
 ```
 This builds the docker image `qanomaly:1.0`.
 
