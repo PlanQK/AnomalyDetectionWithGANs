@@ -1,3 +1,5 @@
+method=tfqSimulator
+trainOrpredict=train
 trainingSteps=1
 totalDepth=1
 batchSize=1

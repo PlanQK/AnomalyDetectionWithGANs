@@ -10,6 +10,8 @@ from GanClassifiers.slimtasq import EnvironmentVariableManager
 from GanClassifiers.DataIO import writeResultsToFile
 
 DEFAULT_ENV_VARIABLES = {
+    "method": "classical",
+    "trainOrpredict": "train",
     "trainingSteps": 1000,
     "totalDepth": 4,
     "batchSize": 64,
@@ -61,18 +63,17 @@ def main():
     # Create Singleton object for the first time with the default parameters
     envMgr = EnvironmentVariableManager(DEFAULT_ENV_VARIABLES)
 
-    assert len(sys.argv) >= 3, errorMsg
-    assert sys.argv[1] in ganBackends.keys(), errorMsg
-    assert sys.argv[2] in ["train", "predict"], errorMsg
+    assert envMgr["method"] in ganBackends.keys(), errorMsg
+    assert envMgr["trainOrpredict"] in ["train", "predict"], errorMsg
 
     # obtain
-    classifierClass = ganBackends[sys.argv[1]]
+    classifierClass = ganBackends[envMgr["method"]]
 
-    if sys.argv[2] == "train":
+    if envMgr["trainOrpredict"] == "train":
         qc = classifierClass()
         qc.train()
         qc.save()
-    elif sys.argv[2] == "predict":
+    elif envMgr["trainOrpredict"] == "predict":
         qc = classifierClass.loadClassifier()
         results = qc.predict()
         print(results)
