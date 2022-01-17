@@ -1,5 +1,5 @@
-# Quantum GAN: Outlier Detection in a Docker Cotainer
-This repository contains a semi supervised method to perform outlier detecion with a (simulated) quantum computer.
+# Quantum GAN: Outlier Detection in a Docker Container
+This repository contains a semi supervised method to perform outlier detection with a (simulated) quantum computer.
 The core algorithm returns an outlier score, but a threshold of the outlier score is optimized with the labelled input.
 
 ## Prerequisites
@@ -9,9 +9,9 @@ A system running Docker.
 ## How to build
 Run the command
 ```
-docker build -t qanomaly:1.0 .
+docker build -t qanomaly:1.1 .
 ```
-This builds the docker image `qanomaly:1.0`.
+This builds the docker image `qanomaly:1.1`.
 
 ## How to run
 After the image was created. A container can be started by:
