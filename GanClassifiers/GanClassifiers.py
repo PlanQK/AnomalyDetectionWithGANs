@@ -17,11 +17,17 @@ Cost object: Calculation of metrics, e.g. F1-Score
 Ansatz: Combination of all ingredients: optimization, cost, training data etc.
 """
 import json
+
+import cirq
 import numpy as np
+import pennylane as qml
 import tensorflow as tf
 import tensorflow_quantum as tfq
-import cirq
-import pennylane as qml
+from cirq_rigetti import circuit_sweep_executors, RigettiQCSSampler
+from pyquil import get_qc
+
+from . import CircHelper
+from . import PennylaneHelper
 from .DataIO import (
     get_feature_length,
     NoLabelSampler,
@@ -34,9 +40,6 @@ from .slimtasq import (
     AnoWGan,
     EnvironmentVariableManager,
 )
-from . import CircHelper
-
-from . import PennylaneHelper
 
 
 class generatorInputSampler:
@@ -88,18 +91,18 @@ class Classifier:
         tf.keras.backend.set_floatx("float64")
         self.anoGan = None
         self.num_features = get_feature_length()
-        envMgr = EnvironmentVariableManager()
-        self.latent_dim = int(envMgr["latentDim"])
-        self.totalNumCycles = int(envMgr["totalDepth"])
+        self.envMgr = EnvironmentVariableManager()
+        self.latent_dim = int(self.envMgr["latentDim"])
+        self.totalNumCycles = int(self.envMgr["totalDepth"])
 
         self.opt = WGanOptimization(
-            tf.keras.optimizers.Adam(float(envMgr["adamTrainingRate"]), beta_1=0.5),
+            tf.keras.optimizers.Adam(float(self.envMgr["adamTrainingRate"]), beta_1=0.5),
             "WGAN",
-            n_steps=int(envMgr["trainingSteps"]),
-            updateInterval=int(envMgr["trainingSteps"]) + 10,
-            batchSize=int(envMgr["batchSize"]),
-            discriminatorIterations=int(envMgr["discriminatorIterations"]),
-            gpWeight=float(envMgr["gpWeight"]),
+            n_steps=int(self.envMgr["trainingSteps"]),
+            updateInterval=int(self.envMgr["trainingSteps"]) + 10,
+            batchSize=int(self.envMgr["batchSize"]),
+            discriminatorIterations=int(self.envMgr["discriminatorIterations"]),
+            gpWeight=float(self.envMgr["gpWeight"]),
         )
 
         self.ansatz = AnoGanAnsatz(self.__class__.__name__)
@@ -316,6 +319,7 @@ class TfqSimulator(Classifier):
         ]
         self.cost = AnoGanCost(self.ansatz)
 
+
     def getGenerator(self, bases):
         self.circuitObject = CircHelper.LittleEntanglementIdentity(
             self.latent_dim, 1, self.totalNumCycles
@@ -345,9 +349,31 @@ class TfqSimulator(Classifier):
 
         paramsInput2 = paramsInput2_layer(paramsInput)
 
-        sampler = tfq.layers.ControlledPQC(
-            circuit, self.circuitObject.getReadOut(), dtype="float32"
-        )
+        if self.envMgr["backend"] == "rigetti":
+            # This executor is recommended in the tutorial, but is only compatible with pyquil 3.0.x
+            #executor = circuit_sweep_executors.with_quilc_parametric_compilation
+            # This executor should also be available with pyquil 2.8.2
+            executor = circuit_sweep_executors.with_quilc_compilation_and_cirq_parameter_resolution
+            qc = get_qc(
+                'Aspen-11',
+                as_qvm=True,
+                noisy=False,
+                compiler_timeout=10000
+            )
+
+            #get_rigetti_qcs_sampler('Aspen-11', as_qvm=True, executor=executor)
+            Rigetti_Sampler = RigettiQCSSampler(
+                quantum_computer=qc,
+                executor=executor
+            )
+            sampler = tfq.layers.ControlledPQC(
+                circuit, self.circuitObject.getReadOut(), dtype="float32", backend=Rigetti_Sampler, repetitions=3
+            )
+        else:
+            sampler = tfq.layers.ControlledPQC(
+                circuit, self.circuitObject.getReadOut(), dtype="float32"
+            )
+
         concat = tf.concat([circuitInputParam, paramsInput2], axis=1)
         expectation = sampler([circuitInput, concat])
 
@@ -404,9 +430,9 @@ class PennylaneSimulator(Classifier):
     def __init__(self, bases=None):
         # copied code from the base init because we need it earlier
         self.num_features = get_feature_length()
-        envMgr = EnvironmentVariableManager()
-        self.latent_dim = int(envMgr["latentDim"])
-        self.totalNumCycles = int(envMgr["totalDepth"])
+        self.envMgr = EnvironmentVariableManager()
+        self.latent_dim = int(self.envMgr["latentDim"])
+        self.totalNumCycles = int(self.envMgr["totalDepth"])
         # Pennylane specifics
         self.device = qml.device("default.qubit", wires=self.latent_dim)
         #self.device = qml.device(
@@ -490,10 +516,10 @@ class PennylaneIbmQ(PennylaneSimulator):
     def __init__(self, bases=None):
         # copied code from the base init because we need it earlier
         self.num_features = get_feature_length()
-        envMgr = EnvironmentVariableManager()
+        self.envMgr = EnvironmentVariableManager()
         # only allow the number of qubits to be between 1-9
-        self.latent_dim = int(envMgr["latentDim"])
-        self.totalNumCycles = int(envMgr["totalDepth"])
+        self.latent_dim = int(self.envMgr["latentDim"])
+        self.totalNumCycles = int(self.envMgr["totalDepth"])
         # Pennylane specifics
         
         IBMQ.load_account()
@@ -508,9 +534,9 @@ class PennylaneIbmQ(PennylaneSimulator):
             "qiskit.ibmq",
             wires=self.latent_dim,
 #            backend="ibmq_qasm_simulator",
-            backend=envMgr["backend"],#"ibmq_16_melbourne",
+            backend=self.envMgr["backend"],#"ibmq_16_melbourne",
             provider=provider,
-#            ibmqx_token=envMgr["ibmqx_token"],
+#            ibmqx_token=self.envMgr["ibmqx_token"],
         )
 
         self.circuitObject = PennylaneHelper.LittleEntanglementIdentity(

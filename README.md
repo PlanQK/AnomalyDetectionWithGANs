@@ -48,6 +48,7 @@ There are many settings that can be adjusted through environment variables. Add 
     latentVarRandomGuesses: 10  Number of random guesses for the latent variables
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
+    backend: "" If backend="rigetti", a rigetti QVM is going to be used to evaluate the cirq-circuits
 ```
 ## Example
 A sample command for a training run is therefore:

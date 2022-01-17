@@ -5,7 +5,7 @@ docker run --gpus=0 \
     --env discriminatorIterations=2 --env latentVariableOptimizationIterations=300 \
     --env backend="ibmqx2" \
     --mount type=bind,source=`pwd`/model/,target=/quantum-anomaly/model \
-    -it qa:1.0 \
+    -it qanomalyexample_run.sh:1.0 \
     pennylaneIBMQ train
 #    --env latentVariableOptimizer=TF \
     
