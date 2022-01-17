@@ -1,90 +1,46 @@
+# Define parent image
 #FROM tensorflow/tensorflow:2.1.0-gpu
 #FROM ubuntu:latest
 FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04
 
+# Create directories, copy necessary files, set working directory and add execution rights
 RUN mkdir /quantum-anomaly
-WORKDIR /quantum-anomaly
-
-ADD requirements.txt /quantum-anomaly/
 RUN mkdir /quantum-anomaly/input-data
 RUN mkdir /quantum-anomaly/model
-
-RUN apt-get update
-
-# temp for testing
-ADD labfile_temp_3.py /quantum-anomaly/
+ADD requirements.txt /quantum-anomaly/
 ADD entrypoint_script.sh /quantum-anomaly/
-RUN mkdir /quantum-anomaly/model/input-data
-ADD model/input-data/predictionSet.csv /quantum-anomaly/model/input-data
-ADD model/input-data/trainSet.csv /quantum-anomaly/model/input-data
-
+ADD GanClassifiers/ /quantum-anomaly/GanClassifiers
+ADD run_simple.py /quantum-anomaly/
+ADD saveaccount.py /quantum-anomaly/
 ADD forest-sdk-2.23.0-linux-deb.run /quantum-anomaly/
-RUN yes Y | ./forest-sdk-2.23.0-linux-deb.run
+WORKDIR /quantum-anomaly
+RUN chmod +x /quantum-anomaly/run_simple.py
 
-# python3.8-way
+# Install & update required applications
+RUN apt-get update
+RUN apt-get install -y git
 RUN apt-get install -y python3.8
 RUN apt-get install -y python3-pip
+RUN apt-get install -y virtualenv
 RUN python3.8 -m pip install pip
 RUN python3.8 -m pip install --upgrade setuptools pip
-RUN apt-get install -y git
+RUN yes Y | ./forest-sdk-2.23.0-linux-deb.run
+
+# Download forked python packages and set up virtual python3.8-environment
 RUN git clone -b pyquil_compatibility_mod_3.0.1 https://github.com/maximilianraaff/pyquil.git
 RUN git clone -b v0.13.1-dev https://github.com/maximilianraaff/Cirq.git
-
-# Create venv
-RUN apt-get install -y virtualenv
 RUN virtualenv venv -p python3.8
 ENV PATH="/quantum-anomaly/venv/bin:$PATH"
 RUN python -m pip install --upgrade setuptools pip
-
-
-
-
-
-#RUN python3.8 -m pip install -e "git+https://github.com/maximilianraaff/Cirq.git@v0.13.1-dev#egg=cirq_rigetti&subdirectory=cirq-rigetti"
-#RUN python3.8 -m pip install -e "git+https://github.com/maximilianraaff/pyquil.git@pyquil_compatibility_mod_3.0.1#egg=pyquil"
-# Alternatively
-#RUN git clone -b pyquil_compatibility_mod_3.0.1 https://github.com/maximilianraaff/pyquil.git
-#RUN pip install -e /quantum-anomaly/pyquil
-#RUN git clone -b v0.13.1-dev https://github.com/maximilianraaff/Cirq.git
-#RUN pip install -e /quantum-anomaly/Cirq/cirq-rigetti
-
-
 #RUN python3.8 -m pip install cirq==0.11.0
 RUN python -m pip install -r /quantum-anomaly/requirements.txt
 RUN cd /quantum-anomaly/pyquil/ && python setup.py install
 RUN cd /quantum-anomaly/Cirq/cirq-rigetti/ && python setup.py install && cd /quantum-anomaly/
 RUN python -m pip install PennyLane_qiskit==0.14.0
 
-
-
-# python3.6-way
-#RUN apt-get install -y python3
-#RUN apt-get install -y python3-pip
-#RUN apt-get install -y git
-#RUN python3 -m pip install --upgrade setuptools pip
-#RUN python3 -m pip install cirq==0.11.0
-#RUN python3 -m pip install -e "git+https://github.com/maximilianraaff/Cirq.git@v0.13.1-dev#egg=cirq_rigetti&subdirectory=cirq-rigetti"
-#RUN python3 -m pip install -r /quantum-anomaly/requirements.txt
-#RUN python3 -m pip install -e "git+https://github.com/maximilianraaff/pyquil.git@pyquil_compatibility_mod#egg=pyquil"
-#RUN python3 -m pip install PennyLane_qiskit==0.14.0
-#
-#
-
-
-
-ADD GanClassifiers/ /quantum-anomaly/GanClassifiers
-ADD run_simple.py /quantum-anomaly/
-RUN chmod +x /quantum-anomaly/run_simple.py
-ADD saveaccount.py /quantum-anomaly/
-
-
-
-#RUN qvm -S > /dev/null 2>&1 &
-#RUN quilc -S > /dev/null 2>&1 &
-
-
-RUN python3.8 saveaccount.py
-#
+# Execute final tasks
+RUN python saveaccount.py
 ADD qiskit_device.py /quantum-anomaly/venv/lib/python3.8/site-packages/pennylane_qiskit/qiskit_device.py
-ENTRYPOINT ["/quantum-anomaly/entrypoint_script.sh"]
-#ENTRYPOINT [ "python3", "run_simple.py"]
+
+# Define entry-point
+ENTRYPOINT ["bash", "entrypoint_script.sh"]
