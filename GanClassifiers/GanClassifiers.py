@@ -318,6 +318,7 @@ class TfqSimulator(Classifier):
             np.array([[1]]),
         ]
         self.cost = AnoGanCost(self.ansatz)
+        self.execution_count_rigetti = 0
 
 
     def getGenerator(self, bases):
@@ -358,7 +359,7 @@ class TfqSimulator(Classifier):
                 'Aspen-11',
                 as_qvm=True,
                 noisy=False,
-                compiler_timeout=10000
+                compiler_timeout=100000
             )
 
             #get_rigetti_qcs_sampler('Aspen-11', as_qvm=True, executor=executor)
@@ -366,6 +367,7 @@ class TfqSimulator(Classifier):
                 quantum_computer=qc,
                 executor=executor
             )
+            self.execution_count_rigetti = Rigetti_Sampler.execution_counter
             sampler = tfq.layers.ControlledPQC(
                 circuit, self.circuitObject.getReadOut(), dtype="float32", backend=Rigetti_Sampler, repetitions=3
             )

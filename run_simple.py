@@ -73,6 +73,7 @@ def main():
         qc = classifierClass()
         qc.train()
         qc.save()
+        print(qc.execution_count_rigetti)
     elif envMgr["trainOrpredict"] == "predict":
         qc = classifierClass.loadClassifier()
         results = qc.predict()
