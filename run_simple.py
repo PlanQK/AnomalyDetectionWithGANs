@@ -73,7 +73,7 @@ def main():
         qc = classifierClass()
         qc.train()
         qc.save()
-        print(f"Number of quantum circuit evaluations: {qc.execution_count_rigetti.execution_counter}"
+        print(f"Number of quantum circuit evaluations: {qc.execution_count_rigetti.execution_counter} "
               f"times repetition number")
     elif envMgr["trainOrpredict"] == "predict":
         qc = classifierClass.loadClassifier()

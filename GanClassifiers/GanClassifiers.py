@@ -351,10 +351,7 @@ class TfqSimulator(Classifier):
         paramsInput2 = paramsInput2_layer(paramsInput)
 
         if self.envMgr["backend"] == "rigetti":
-            # This executor is recommended in the tutorial, but is only compatible with pyquil 3.0.x
-            #executor = circuit_sweep_executors.with_quilc_parametric_compilation
-            # This executor should also be available with pyquil 2.8.2
-            executor = circuit_sweep_executors.with_quilc_compilation_and_cirq_parameter_resolution
+            executor = circuit_sweep_executors.with_quilc_parametric_compilation
             qc = get_qc(
                 'Aspen-11',
                 as_qvm=True,
@@ -362,7 +359,6 @@ class TfqSimulator(Classifier):
                 compiler_timeout=100000
             )
 
-            #get_rigetti_qcs_sampler('Aspen-11', as_qvm=True, executor=executor)
             Rigetti_Sampler = RigettiQCSSampler(
                 quantum_computer=qc,
                 executor=executor,

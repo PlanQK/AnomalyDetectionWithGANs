@@ -28,7 +28,7 @@ RUN yes Y | ./forest-sdk-2.23.0-linux-deb.run
 
 # Download forked python packages and set up virtual python3.8-environment
 RUN git clone -b pyquil_compatibility_mod_3.0.1 https://github.com/maximilianraaff/pyquil.git
-RUN git clone -b v0.13.1-dev https://github.com/maximilianraaff/Cirq.git
+RUN git clone -b v0.13.1-dev_v2 https://github.com/maximilianraaff/Cirq.git
 RUN virtualenv venv -p python3.8
 ENV PATH="/quantum-anomaly/venv/bin:$PATH"
 RUN python -m pip install --upgrade setuptools pip
