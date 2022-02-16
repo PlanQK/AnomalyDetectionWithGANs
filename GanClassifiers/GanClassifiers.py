@@ -320,7 +320,6 @@ class TfqSimulator(Classifier):
         ]
         self.cost = AnoGanCost(self.ansatz)
 
-
     def getGenerator(self, bases):
         self.circuitObject = CircHelper.LittleEntanglementIdentity(
             self.latent_dim, 1, self.totalNumCycles
@@ -366,7 +365,7 @@ class TfqSimulator(Classifier):
             )
 
             sampler = tfq.layers.ControlledPQC(
-                circuit, self.circuitObject.getReadOut(), dtype="float32", backend=Rigetti_Sampler, repetitions=3
+                circuit, self.circuitObject.getReadOut(), dtype="float32", backend=Rigetti_Sampler, repetitions=1000
             )
         else:
             sampler = tfq.layers.ControlledPQC(
