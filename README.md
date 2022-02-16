@@ -11,7 +11,7 @@ Run the command
 ```
 docker build -t qanomaly:1.1 .
 ```
-This builds the docker image `qanomaly:1.1`.
+This builds the docker image `qanomaly:1.1` in the current directory.
 
 ## How to run
 Before the container can be started and the training/prediction is executed, the source-path in run.sh needs to be
@@ -36,7 +36,7 @@ package to train/predict the model. The supported methods are:
     pennylaneSimulator: Parametrized circuit with Pennylane
     pennylaneIBMQ: Same as pennylaneSimulator, but with the IBM Q backend
 ```
-If `method=tfqSimulator` can also be used together with a rigetti-backend, simulating the quantum-circuit on a QVM.
+The `method=tfqSimulator` can also be used together with a rigetti-backend, simulating the quantum-circuit on a QVM.
 To this end, the parameter `backend` needs to be set to `backend=rigetti`. The container can be run in training mode by
 specifying the `trainOrpredict=train` flag. This will train the model and save the trained parameters in the mounted volume.
 In `trainOrpredict=predict` mode the container loads the trained parameters, that were previously saved to the mounted `model` folder.
@@ -59,6 +59,7 @@ their default value (if the variable is not supplied in run_config.txt) and a sh
     latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
     ibmqx_token: ""  Token to access IBM Quantum experience
     backend: "ibmq_16_melbourne"  If backend="rigetti", a rigetti QVM is going to be used to evaluate the cirq-circuits
+             (only together with method=tfqSimulator)
 ```
 
 
