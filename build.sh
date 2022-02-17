@@ -1,1 +1,1 @@
-docker build -t qa:1.0 .
+docker build -t qanomaly:1.1 .

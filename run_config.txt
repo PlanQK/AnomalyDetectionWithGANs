@@ -1,0 +1,13 @@
+method=tfqSimulator
+trainOrpredict=train
+trainingSteps=1
+totalDepth=1
+batchSize=1
+discriminatorIterations=5
+adamTrainingRate=0.01
+gpWeight=1.0
+latentVariableOptimizer=forest_minimize
+latentVariableOptimizationIterations=10
+latentDim=2
+ibmqx_token=""
+backend=rigetti
