@@ -11,7 +11,7 @@ Run the command
 ```
 docker build -t qanomaly:1.1 .
 ```
-This builds the docker image `qanomaly:1.1` in the current directory.
+This builds the docker image `qanomaly:1.1` in the current directory. Alternatively, simply run `build.sh`.
 
 ## How to run
 Before the container can be started and the training/prediction is executed, the source-path in run.sh needs to be
