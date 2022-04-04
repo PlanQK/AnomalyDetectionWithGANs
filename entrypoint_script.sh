@@ -4,4 +4,4 @@ if [ "$backend" == "rigetti" ]
     qvm -S > /dev/null 2>&1 &
     quilc -S > /dev/null 2>&1 &
 fi
-python /quantum-anomaly/run_simple.py
+python /quantum-anomaly/run_gan_classifier.py

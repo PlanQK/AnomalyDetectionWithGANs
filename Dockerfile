@@ -1,16 +1,13 @@
 # Define parent image
-#FROM tensorflow/tensorflow:2.1.0-gpu
-#FROM ubuntu:latest
-FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04
+FROM ubuntu:latest
 
 # Create directories, set working directory
 RUN mkdir /quantum-anomaly
-RUN mkdir /quantum-anomaly/input-data
+RUN mkdir /quantum-anomaly/input_data
 RUN mkdir /quantum-anomaly/model
 ADD forest-sdk-2.23.0-linux-deb.run /quantum-anomaly/
 WORKDIR /quantum-anomaly
 ADD requirements.txt /quantum-anomaly/
-ADD saveaccount.py /quantum-anomaly/
 
 # Install & update required applications
 RUN apt-get update
@@ -34,12 +31,10 @@ RUN cd /quantum-anomaly/Cirq/cirq-rigetti/ && python setup.py install && cd /qua
 RUN python -m pip install PennyLane_qiskit==0.14.0
 
 # Execute final tasks and copy relevant files
-RUN python saveaccount.py
-ADD qiskit_device.py /quantum-anomaly/venv/lib/python3.8/site-packages/pennylane_qiskit/qiskit_device.py
 ADD entrypoint_script.sh /quantum-anomaly/
-ADD GanClassifiers/ /quantum-anomaly/GanClassifiers
-ADD run_simple.py /quantum-anomaly/
-RUN chmod +x /quantum-anomaly/run_simple.py
+ADD gan_classifiers/ /quantum-anomaly/gan_classifiers
+ADD run_gan_classifier.py /quantum-anomaly/
+RUN chmod +x /quantum-anomaly/run_gan_classifier.py
 
 # Define entry-point
 ENTRYPOINT ["bash", "entrypoint_script.sh"]
