@@ -1,88 +1,87 @@
-#!/usr/bin/python3
 """This file is the entrypoint for the docker run command.
-Here, the parameters are interpreted and the respective
-AnoGan class/simulation is instanciated.
+Here, the parameters are interpreted and all training/evaluation steps are triggered.
 """
 
 import sys
-import GanClassifiers
+import GanClassifiers.GANomalyNetworks
+import logging
+
+from GanClassifiers.Trainer import Trainer, QuantumDecoderTrainer
 from GanClassifiers.slimtasq import EnvironmentVariableManager
-from GanClassifiers.DataIO import writeResultsToFile
+from GanClassifiers.DataIO import (writeResultsToFile, DataStorage, save_training_hist)
+from GanClassifiers.Plotter import Plotter
 
 DEFAULT_ENV_VARIABLES = {
-    "method": "classical",
-    "trainOrpredict": "train",
-    "trainingSteps": 1000,
-    "totalDepth": 4,
-    "batchSize": 64,
+    "method": "quantum",
+    "trainOrpredict": "predict",
+    "data_filepath": "",
+    "trainingSteps": 10,
+    "qcType": "SemiClassicalRandom",
+    "quantumDepth": 3,
+    "batchSize": 16,
     "discriminatorIterations": 5,
-    "adamTrainingRate": 0.01,
-    "gpWeight": 1.0,
-    "latentVariableOptimizer": "forest_minimize",
-    "latentVariableOptimizationIterations": 30,
-    "latentDim": 10,
-    "ibmqx_token": "",
-    "backend": "ibmq_16_melbourne",
+    "validationInterval": 2,
+    "validationSamples": 100,
+    "discTrainingRate": 0.02,
+    "genTrainingRate": 0.02,
+    "gpWeight": 10.0,
+    "num_shots": 100,
+    "latentDim": 6,
+    "adv_loss_weight": 1,
+    "con_loss_weight": 50,
+    "enc_loss_weight": 1,
 }
 
 
-errorMsg = """
-Usage: run_me.py classical|tfqSimulator|pennylaneSimulator|pennylaneIBMQ train|predict (--optArgs)
-Arguments:
-    classical: Run the AnoGAN with a classical generator. This is the fastest option.
-    tfqSimulator: Run a simulated version of the quantum AnoGAN with Tensorflow Quantum.
-    pennylaneSimulator: Run a simulated version of the quantum AnoGAN with Pennylane.
-    pennylaneIBMQ: Run on the real hardware with Pennylane and its IBM Q backend.
-
-    train: Trains the network. Requires that input-data/trainingData.csv exists.
-    predict: Returns the outlier prediction. Requires that input-data/prediction.csv exists
-
-Any further settings are done through environment variables:
-    trainingSteps: 1000  Number of iteration for the training of the GAN
-    latentDim: 10  size of the latent space = num qubits
-    totalDepth: 4  Depth of the circuit or number of layers in the generator
-    batchSize: 64  Number of samples per training step
-    adamTrainingRate: 0.01  Training rate for the Adam optimizer
-    discriminatorIterations: 5  How often does the discriminator update its weights vs generator
-    gpWeight: 1.0  Weight factor for the gradient Penalty (Wasserstein Loss specific parameter)
-    latentVariableOptimizer: forest_minimize  Which optimizer to choose for the latent variable optimizers
-                    possible values: forest_minimize, TF
-    latentVariableOptimizationIterations: 30  Number of optimization iterations to obtain the latent variables
-    ibmqx_token: ""  Token to access IBM Quantum experience
-"""
-
 ganBackends = {
-    "classical": GanClassifiers.ClassicalClassifier,
-    "tfqSimulator": GanClassifiers.TfqSimulator,
-    "pennylaneSimulator": GanClassifiers.PennylaneSimulator,
-    "pennylaneIBMQ": GanClassifiers.PennylaneIbmQ,
+    "classical": {"networks": GanClassifiers.GANomalyNetworks.ClassicalDenseNetworks,
+                  "trainer": GanClassifiers.Trainer.Trainer,
+                  "plotter": GanClassifiers.Plotter.Plotter, }
+    ,
+    "quantum": {"networks": GanClassifiers.GANomalyNetworks.QuantumDecoderNetworks,
+                "trainer": GanClassifiers.Trainer.QuantumDecoderTrainer,
+                "plotter": GanClassifiers.Plotter.QuantumDecoderPlotter, },
 }
 
 
 def main():
-    # Create Singleton object for the first time with the default parameters
+    # create and configure main logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    # create the logging file handler
+    fh = logging.FileHandler("log.log", mode='w')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    # add handler to logger object
+    logger.addHandler(fh)
+
+    # Create Singleton object for the first time with the default parameters and perform checks
     envMgr = EnvironmentVariableManager(DEFAULT_ENV_VARIABLES)
+    assert envMgr["method"] in ganBackends.keys(), "No valid method parameter provided."
+    assert envMgr["trainOrpredict"] in ["train", "predict"], "trainOrpredict parameter not train or predict."
+    logger.debug("Environment Variables loaded successfully.")
 
-    assert envMgr["method"] in ganBackends.keys(), errorMsg
-    assert envMgr["trainOrpredict"] in ["train", "predict"], errorMsg
+    # Load data
+    data_obj = DataStorage(fp=envMgr["data_filepath"])
+    logger.debug("Data loaded successfully.")
+    classifier = ganBackends[envMgr["method"]]["networks"](data_obj)
+    trainer = ganBackends[envMgr["method"]]["trainer"](data_obj, classifier)
+    print("The following models will be used:")
+    classifier.print_model_summaries()
 
-    # obtain
-    classifierClass = ganBackends[envMgr["method"]]
 
     if envMgr["trainOrpredict"] == "train":
-        qc = classifierClass()
-        qc.train()
-        qc.save()
-        print(f"Number of quantum circuit evaluations: {qc.execution_count_rigetti.execution_counter} "
-              f"times repetition number")
+        train_hist = trainer.train()
+        plotter = ganBackends[envMgr["method"]]["plotter"](train_hist, pix_num_one_side=3)
+        plotter.plot()
+        save_training_hist(train_hist)
     elif envMgr["trainOrpredict"] == "predict":
-        qc = classifierClass.loadClassifier()
-        results = qc.predict()
+        classifier.loadClassifier()
+        results = trainer.calculateMetrics(validation_or_test="test")
         print(results)
-        writeResultsToFile(results)
-
-    else:
-        print(errorMsg)
+        plotter = ganBackends[envMgr["method"]]["plotter"](results, fp="model", pix_num_one_side=3, validation=False)
+        plotter.plot()
+        save_training_hist(results, fp="model/test_results.json")
     return
 
 

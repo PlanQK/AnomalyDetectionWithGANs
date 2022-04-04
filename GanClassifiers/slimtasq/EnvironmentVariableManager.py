@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__ + ".py")
+
 import os
 import typing
 
@@ -21,8 +24,7 @@ class EnvironmentVariableManager(metaclass=Singleton):
         for key in self.envVariables:
             if key in self.returnEnvironmentVariables():
                 self.envVariables[key] = self.returnEnvironmentVariables()[key]
-        print(f"running with the following settings:\n{self.envVariables}")
-        print(" estimated QC training runtime (minutes, for 60s/roundtrip): %d"%(int(self.envVariables["trainingSteps"])*int(self.envVariables["batchSize"])*(1+int(self.envVariables["discriminatorIterations"]))))
+        logger.info(f"Running with the following settings:\n{self.envVariables}")
 
     @staticmethod
     def returnEnvironmentVariables() -> typing.Dict[str, typing.Any]:

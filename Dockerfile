@@ -5,7 +5,7 @@ FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04
 
 # Create directories, set working directory
 RUN mkdir /quantum-anomaly
-RUN mkdir /quantum-anomaly/input-data
+RUN mkdir /quantum-anomaly/input_data
 RUN mkdir /quantum-anomaly/model
 ADD forest-sdk-2.23.0-linux-deb.run /quantum-anomaly/
 WORKDIR /quantum-anomaly

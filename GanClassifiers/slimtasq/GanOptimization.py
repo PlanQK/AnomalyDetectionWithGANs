@@ -74,7 +74,7 @@ class GanOptimization:
         """
         self.__axstep=self.__axstep+1
         print("GAN step ",self.__axstep);
-        real_images = cost.ansatz.trueInputSampler(self.batchSize)
+        real_images = cost.ansatz.trainSampler(self.batchSize)
         for i in range(self.discriminatorIterations):
             # Get the latent vector
             random_latent_vectors = cost.ansatz.latentVariableSampler(
