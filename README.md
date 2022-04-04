@@ -9,9 +9,9 @@ A system running Docker.
 ## How to build
 Run the command
 ```
-docker build -t qanomaly:1.1 .
+docker build -t qanomaly:1.2 .
 ```
-This builds the docker image `qanomaly:1.1` in the current directory. Alternatively, simply run `build.sh`.
+This builds the docker image `qanomaly:1.2` in the current directory. Alternatively, simply run `build.sh`.
 
 ## Provide input-data
 The input-data to train and test on has either to be supplied in the `input_data` folder by placing one or several csv-files
