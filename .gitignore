@@ -4,4 +4,4 @@
 **.pyc
 model*/**
 **/input-data*/**
-.vscode/launch.json
+.vscode/**
