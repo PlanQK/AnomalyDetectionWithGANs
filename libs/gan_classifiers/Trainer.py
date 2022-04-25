@@ -1,3 +1,4 @@
+import logging
 import time
 import numpy as np
 
@@ -6,8 +7,7 @@ import tensorflow as tf
 from tqdm import tqdm
 import tensorflow_quantum as tfq
 
-from gan_classifiers.EnvironmentVariableManager import EnvironmentVariableManager
-
+logger = logging.getLogger()
 class Trainer:
     """
     Class holding the required methods and attributes to conduct the training or testing procedure.
@@ -16,7 +16,8 @@ class Trainer:
     def __init__(
             self,
             Data,
-            Classifier
+            Classifier,
+            parameters
     ):
         """Initialize necessary parameters to train the model via a Wasserstein-Loss based GANomaly ansatz.
         
@@ -40,26 +41,24 @@ class Trainer:
                     contextual and encoding loss respectively.
         """
         tf.keras.backend.set_floatx("float64")
-        self.envMgr = EnvironmentVariableManager()
 
         self.Data = Data
         self.Classifier = Classifier
 
-        self.validation = True if self.envMgr["train_or_predict"] == "train" else False
-        self.opt_disc = tf.keras.optimizers.Adam(beta_1=0.5, lr=float(self.envMgr["discriminator_training_rate"]))
-        self.opt_gen = tf.keras.optimizers.Adam(beta_1=0.5, lr=float(self.envMgr["generator_training_rate"]))
-        self.latent_dim = self.envMgr["latent_dimensions"]
-        self.n_steps = self.envMgr["training_steps"]
+        self.validation = True if parameters["train_or_predict"] == "train" else False
+        self.opt_disc = tf.keras.optimizers.Adam(beta_1=0.5, learning_rate=float(parameters["discriminator_training_rate"]))
+        self.opt_gen = tf.keras.optimizers.Adam(beta_1=0.5, learning_rate=float(parameters["generator_training_rate"]))
+        self.latent_dim = parameters["latent_dimensions"]
+        self.n_steps = parameters["training_steps"]
         self.step_counter = 0
-        self.batch_size = self.envMgr["batch_size"]
-        self.discriminator_iterations = self.envMgr["discriminator_iterations"]
-        self.updateInterval = self.envMgr["validation_interval"]
-        self.validation_samples = min(int(self.envMgr["validation_samples"]), len(self.Data.test_data_normal),
-                                     len(self.Data.validation_data_unnormal))
-        self.gradient_penalty_weight = self.envMgr["gradient_penalty_weight"]
-        self.adv_loss_weight = self.envMgr["adv_loss_weight"]
-        self.con_loss_weight = self.envMgr["con_loss_weight"]
-        self.enc_loss_weight = self.envMgr["enc_loss_weight"]
+        self.batch_size = parameters["batch_size"]
+        self.discriminator_iterations = parameters["discriminator_iterations"]
+        self.updateInterval = parameters["validation_interval"]
+        self.validation_samples = int(parameters["validation_samples"])
+        self.gradient_penalty_weight = parameters["gradient_penalty_weight"]
+        self.adv_loss_weight = parameters["adv_loss_weight"]
+        self.con_loss_weight = parameters["con_loss_weight"]
+        self.enc_loss_weight = parameters["enc_loss_weight"]
         self.g_loss = 0
         self.adv_loss = 0
         self.con_loss = 0
@@ -101,7 +100,7 @@ class Trainer:
                 for key, value in metrics.items():
                     self.train_hist[key].append(value)
                 self.train_hist["step_number"].append(self.step_counter)
-                print(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Discriminator loss: {self.d_loss}")
+                logger.info(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Discriminator loss: {self.d_loss}")
         toc = time.perf_counter()
 
         self.train_hist["total_runtime"] = toc - tic
@@ -267,7 +266,8 @@ class Trainer:
 
         mae = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
         if validation_or_test == "validation":
-            x_normal, x_unnormal = self.Data.get_validation_data(batch_size=int(self.validation_samples))
+            samples = min(self.validation_samples, len(self.Data.validation_data_unnormal))
+            x_normal, x_unnormal = self.Data.get_validation_data(batch_size=int(samples))
         elif validation_or_test == "test":
             x_normal, x_unnormal = self.Data.get_test_data()
 
@@ -317,8 +317,9 @@ class Trainer:
                 self.train_hist["quantum_weights"].append(self.Classifier.auto_decoder.layers[1].get_weights()[0])
             if self.best_mcc < res["MCC"]:
                 self.best_mcc = res["MCC"]
-                self.Classifier.save(step=step, MCC=res["MCC"], threshold=res["threshold"], overwrite_best=True)
-                print("\nModel with new highscore saved!")
+                # Save classifier weights & bias in training result
+                self.train_hist["classifier"] = self.Classifier.save(threshold=res["threshold"], overwrite_best=True)
+                logger.info("\nModel with new highscore saved!")
         elif validation_or_test == "test":
             res["TP"] = [res["TP"]]
             res["FP"] = [res["FP"]]
@@ -406,9 +407,10 @@ class QuantumDecoderTrainer(Trainer):
     def __init__(
             self,
             Data,
-            Classifier
+            Classifier,
+            parameters
     ):
-        super().__init__(Data=Data, Classifier=Classifier)
+        super().__init__(Data=Data, Classifier=Classifier, parameters=parameters)
         self.train_hist["quantum_weights"] = []
         self.quantum = True
 

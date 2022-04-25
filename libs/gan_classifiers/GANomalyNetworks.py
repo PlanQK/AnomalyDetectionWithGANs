@@ -5,11 +5,11 @@ import logging
 import json
 
 import cirq
+import numpy
 import tensorflow as tf
 import tensorflow_quantum as tfq
 
-from gan_classifiers.EnvironmentVariableManager import EnvironmentVariableManager
-from gan_classifiers.QuantumCircuits import CompleteRotationCircuitIdentity, CompleteRotationCircuitRandom, \
+from libs.gan_classifiers.QuantumCircuits import CompleteRotationCircuitIdentity, CompleteRotationCircuitRandom, \
     StandardCircuit, StrongEntanglementIdentity, StrongEntanglementRandom, LittleEntanglementIdentity, \
     LittleEntanglementRandom, SemiClassicalIdentity, SemiClassicalRandom
 
@@ -21,13 +21,12 @@ class Classifier:
     Ideally, only the getEncoder, getDecoder, getDiscriminator and getGANomaly methods need to be
     specified to obtain a new classifier.
     """
-    def __init__(self, data):
+    def __init__(self, data, parameters):
         """Instantiate all required models for the GANomalyNetwork.
         """
         tf.keras.backend.set_floatx("float64")
         self.num_features = data.feature_length
-        self.envMgr = EnvironmentVariableManager()
-        self.latent_dim = int(self.envMgr["latent_dimensions"])
+        self.latent_dim = int(parameters["latent_dimensions"])
         self.threshold = 0
 
     def getEncoder(self):
@@ -77,7 +76,7 @@ class Classifier:
         self.auto_decoder.summary()
         self.discriminator.summary()
 
-    def save(self, step, MCC, threshold, overwrite_best=False):
+    def saveClassifier(self, step, MCC, threshold, overwrite_best=False):
         """Store the trained weights and parameters."""
         if overwrite_best:
             data = {
@@ -117,6 +116,18 @@ class Classifier:
 
         return None
 
+    def save(self, threshold, overwrite_best=False):
+        if overwrite_best:
+            result = {}
+            result["auto_encoder_weights"] = self.auto_encoder.get_weights()
+            result["auto_decoder_weights"] = self.auto_decoder.get_weights()
+            result["encoder_weights"] = self.encoder.get_weights()
+            result["discriminator_weights"] = self.discriminator.get_weights()
+
+            result["threshold"] = threshold
+            result["latent_dim"] = self.latent_dim
+        return result
+
     def loadClassifier(self):
         """Load a previously trained classifier from files."""
         data = {}
@@ -138,15 +149,32 @@ class Classifier:
         )
         return None
 
+    def load(self, data):
+        """Load a previously trained classifier"""
+        weights_auto_encoder = [numpy.array(w) for w in data["classifier"]["auto_encoder_weights"]]
+        self.auto_encoder.set_weights(weights_auto_encoder)
+
+        weights_auto_decoder = [numpy.array(w) for w in data["classifier"]["auto_decoder_weights"]]
+        self.auto_decoder.set_weights(weights_auto_decoder)
+
+        weights_encoder =  [numpy.array(w) for w in data["classifier"]["encoder_weights"]]   
+        self.encoder.set_weights(weights_encoder)
+
+        weights_discriminator = [numpy.array(w) for w in data["classifier"]["discriminator_weights"]]
+        self.discriminator.set_weights(weights_discriminator)
+
+        self.threshold = data["classifier"]["threshold"]
+        return None 
+
 class ClassicalDenseNetworks(Classifier):
     """
     Class containing all required network structures for the GANomaly method as classical dense networks.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, parameters):
         """Instantiate all required models for the GANomalyNetwork.
         """
-        super().__init__(data=data)
+        super().__init__(data=data, parameters=parameters)
         self.auto_encoder = self.getEncoder()
         self.auto_decoder = self.getDecoder()
         self.encoder = self.getEncoder()
@@ -206,16 +234,16 @@ class QuantumDecoderNetworks(Classifier):
     Class containing all required network structures for the GANomaly method as classical dense networks.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, parameters):
         """Instantiate all required models for the GANomalyNetwork.
         """
-        super().__init__(data=data)
-        self.repetitions = self.envMgr["shots"]
+        super().__init__(data=data, parameters=parameters)
+        self.repetitions = parameters["shots"]
         self.qubits = cirq.GridQubit.rect(1, self.latent_dim)
         self.quantum_weights = None
         self.quantum_circuit = None
-        self.quantum_circuit_type = self.envMgr["quantum_circuit_type"]
-        self.totalNumCycles = self.envMgr["quantum_depth"]
+        self.quantum_circuit_type = parameters["quantum_circuit_type"]
+        self.totalNumCycles = parameters["quantum_depth"]
         self.auto_encoder = self.getEncoder()
         self.auto_decoder = self.getDecoder()
         self.encoder = self.getEncoder()
