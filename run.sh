@@ -1,5 +1,18 @@
-docker run \
---env-file run_config.txt \
---mount type=bind,source=/mnt/c/Maximilian_Hoeschler/Projekte/04_PlanQK/Repo/QuantumClassifierDocker/model,target=/quantum-anomaly/model \
---mount type=bind,source=/mnt/c/Maximilian_Hoeschler/Projekte/04_PlanQK/Repo/QuantumClassifierDocker/input_data,target=/quantum-anomaly/input_data \
-qanomaly:1.2
+# #!/bin/bash
+
+git_root=`git rev-parse --show-toplevel`
+path_prefix="input/"
+path_to_json="small_input_test"
+
+file="${git_root}/${path_prefix}${path_to_json}.json"
+
+echo "using ${file} as input"
+
+data=`cat $file | jq '.data' | base64`
+params=`cat $file | jq '.params' | base64`
+
+echo "parameters: ${params}"
+echo "data: ${data}"
+
+docker rm -f qgan
+docker run -it -e INPUT_DATA="${data}" -e INPUT_PARAMS="${params}" --name qgan planqk-service
