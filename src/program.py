@@ -53,7 +53,7 @@ def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] 
     response: Response
     try:
         # Process data
-        data = Data(pandas.DataFrame(data["values"], dtype="float64"), params)
+        data_values = Data(pandas.DataFrame(data["values"], dtype="float64"), params)
         logger.info("Data loaded successfully.")
 
         # Load parameters and set defaults
@@ -62,8 +62,8 @@ def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] 
         logger.info("Parameters loaded successfully.")
 
         # Train or evaluate the classifier
-        classifier = gan_backends[params["method"]]["networks"](data, params)
-        trainer = gan_backends[params["method"]]["trainer"](data, classifier, params)
+        classifier = gan_backends[params["method"]]["networks"](data_values, params)
+        trainer = gan_backends[params["method"]]["trainer"](data_values, classifier, params)
         #print("The following models will be used:")
         #classifier.print_model_summaries()
 
@@ -73,7 +73,7 @@ def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] 
             logger.info("Training of the GAN classifier has ended")        
             return ResultResponse(result=train_history["classifier"])
         elif params["train_or_predict"] == "predict":
-            classifier.load(params)
+            classifier.load(data["classifier"])
             result = trainer.calculateMetrics(validation_or_test="test")
             export_to_json(result, "response_test.json")
             logger.info("Testing of the GAN classifier has ended")   

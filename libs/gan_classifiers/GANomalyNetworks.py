@@ -151,19 +151,19 @@ class Classifier:
 
     def load(self, data):
         """Load a previously trained classifier"""
-        weights_auto_encoder = [numpy.array(w) for w in data["classifier"]["auto_encoder_weights"]]
+        weights_auto_encoder = [numpy.array(w) for w in data["auto_encoder_weights"]]
         self.auto_encoder.set_weights(weights_auto_encoder)
 
-        weights_auto_decoder = [numpy.array(w) for w in data["classifier"]["auto_decoder_weights"]]
+        weights_auto_decoder = [numpy.array(w) for w in data["auto_decoder_weights"]]
         self.auto_decoder.set_weights(weights_auto_decoder)
 
-        weights_encoder =  [numpy.array(w) for w in data["classifier"]["encoder_weights"]]   
+        weights_encoder =  [numpy.array(w) for w in data["encoder_weights"]]   
         self.encoder.set_weights(weights_encoder)
 
-        weights_discriminator = [numpy.array(w) for w in data["classifier"]["discriminator_weights"]]
+        weights_discriminator = [numpy.array(w) for w in data["discriminator_weights"]]
         self.discriminator.set_weights(weights_discriminator)
 
-        self.threshold = data["classifier"]["threshold"]
+        self.threshold = data["threshold"]
         return None 
 
 class ClassicalDenseNetworks(Classifier):

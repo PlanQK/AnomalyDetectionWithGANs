@@ -7,14 +7,14 @@ A system running Docker.
 ## How to build
 Run the command
 ```
-docker build -t qanomaly:1.2 .
+docker build -t planqk-service .
 ```
-This builds the docker image `qanomaly:1.2` in the current directory. Alternatively, simply run `build.sh`.
+This builds the docker image `planqk-service` in the current directory. Alternatively, simply run `build.sh`.
 
 ## Provide input-data
-The input-data to train or test the classifier has either to be supplied in the `input` folder in json format.
-Each data point consist of a vector of values in the range [0.0, 1.0] plus the true label, signaling a normal sample or an
-anomaly. Example:
+The input-data to train or test the classifier to be supplied in the `input` folder in json format. 
+The data values are given as a vector of data points. Each data point consist of a vector of values 
+in the range [0.0, 1.0] plus the true label, signaling a normal sample or an anomaly. Example:
 ```
     "data": {
         "values": [
@@ -29,7 +29,7 @@ anomaly. Example:
                 0.0964527986715833,
                 0.12739252806545098,
                 0.0
-            ],
+            ], ...
             [
                 0.919818707941956,
                 0.8504884183157868,
@@ -41,10 +41,27 @@ anomaly. Example:
                 0.1260498866684419,
                 0.04495871230873992,
                 0.0
-            ], ...
-        ]
+            ],
+        ] 
+        "classifier": {}
+    }
 ```
 
+In the case of a testing data set, the data requires the set of weights and the threshold computed during the training of the classifier. The weights of the auto_encoder, auto_decoder, encoder and discriminator respectively consist of array of matrices, the threshold lies within [0, 1]. These are given within the "classifier" key. 
+Example:
+```
+    "data": {
+        "values": [..]
+        "classifier": {
+            "auto_encder_weights": [..],
+            "auto_decoder_weights": [..],
+            "encoder_weights": [..],
+            "decoder_weights": [..],
+            "threshold": 0.2,
+            "latent_dim": 6
+        }
+    }
+```
 In addition the input-data contains the parameters used for the run. These are provided within the "params" object of the input-data file.
 We provide the description of the parameters as follows.
 ### Parameter description
@@ -72,8 +89,7 @@ The following values are possible:
 ```
 
 
-The depth of the quantum-circuit is set by the variable `quantum_depth`. The structure of the respective quantum circuits can be viewed in the file `QuantumCircuits.py`. By subclassing, new
-decoder circuits can additionally be implemented.
+The depth of the quantum-circuit is set by the variable `quantum_depth`. The structure of the respective quantum circuits can be viewed in the file `QuantumCircuits.py`. By subclassing, new decoder circuits can additionally be implemented.
 
 There are further settings to be determined. Below is a list of the required parameters and a short description for each of them.
 ```
@@ -94,11 +110,6 @@ There are further settings to be determined. Below is a list of the required par
     enc_loss_weight: 1 weight of the encoding generator loss
     validation_interval: how often the performance of the GAN is checked against the validation set and the optimal anomaly threshold is determined
     validation_samples: 100 number of validation samples used (e.g. if 100, then 100 normal and 100 unnormal samples will be used)
-    classifier: set of weights obtained from the training process (only necessary for testing)
-	auto_encoder_weights: weights of hte auto-encoder
-	auto_decoder_weights: weights of the auto-decoder
-	encoder_weights: weights of the encoder
-	discriminator_weights: weights of the discriminator
 ```
 Some of the parameters change the network size and therefore must have identical values in both the training step and the prediction step. It is thus highly recommended, to keep the parameter set identical between training and prediction.
 
@@ -107,4 +118,4 @@ Before the container can be started and the training/prediction is executed, the
 ```
 bash run.sh
 ```
-Once the run is concluded the result is stored in the file: `response_training.json`and `response_testing.json`for the training and testing processes respectively. The result of the training contains the weights of the trained classifier (auto_encoder_weights, auto_decoder_weights, encoder_weights and discriminator_weights) and the optimized threshold. On the other hand, the result of the testing contains the confusion matrix computed for the predictions and the corresponding MCC.
+Once the run is concluded the result is printed in json format. The result of the training contains the weights of the trained classifier (auto_encoder_weights, auto_decoder_weights, encoder_weights and discriminator_weights) and the optimized threshold. On the other hand, the result of the testing contains the confusion matrix computed for the predictions and the corresponding MCC.
