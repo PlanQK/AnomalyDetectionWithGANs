@@ -114,7 +114,9 @@ There are further settings to be determined. Below is a list of the required par
 Some of the parameters change the network size and therefore must have identical values in both the training step and the prediction step. It is thus highly recommended, to keep the parameter set identical between training and prediction.
 
 ## How to run
-Before the container can be started and the training/prediction is executed, the path to the input file `path_to_json` in `run.sh` needs to be adapted. A container and hence a run can be started with the command:
+Before the container can be started and the training/prediction is executed, the path to the input file `path_to_json` in `run.sh` needs to be adapted. There are three input files available: `train.json`, `test_classical.json` and `test_quantum.json` to train and test a classical and quantum version respectively of the classifier. These can be used as model to construct new examples.
+
+A container and hence a run can be started with the command:
 ```
 bash run.sh
 ```
