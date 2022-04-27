@@ -5,3 +5,6 @@
 model*/**
 **/input-data*/**
 .vscode/launch.json
+
+saved_results/**
+input_text/**

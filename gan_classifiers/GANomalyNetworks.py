@@ -3,6 +3,7 @@ This file holds classes which contain the neural network classifiers of the GANo
 """
 import logging
 import json
+import numpy as np
 
 import cirq
 import tensorflow as tf
@@ -143,62 +144,72 @@ class ClassicalDenseNetworks(Classifier):
     Class containing all required network structures for the GANomaly method as classical dense networks.
     """
 
-    def __init__(self, data):
-        """Instantiate all required models for the GANomalyNetwork.
+    def __init__(self, data, sim_amount_layers=10):
+        """
+        Instantiate all required models for the GANomalyNetwork.
         """
         super().__init__(data=data)
-        self.auto_encoder = self.getEncoder()
-        self.auto_decoder = self.getDecoder()
-        self.encoder = self.getEncoder()
+        self.auto_encoder = self.getEncoder(sim_amount_layers)
+        self.auto_decoder = self.getDecoder(sim_amount_layers)
+        self.encoder = self.getEncoder(sim_amount_layers)
         self.discriminator = self.getDiscriminator()
 
-    def getDiscriminator(self):
+    def getDiscriminator(self, sim_amount_layers=8):
         """
-        Return the tensorflow model of the Discriminator.
+        Build a tensorflow model of the Discriminator with the given depth (sim_amount_layers).
+
+        Return the model.
         """
         discInput = tf.keras.layers.Input(
             shape=(self.num_features), name="DiscInput"
         )
         model = tf.keras.layers.Dense(self.num_features)(discInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.Dense(1, activation="sigmoid")(model)
+        for size in [int(s) for s in np.linspace(self.num_features, 1, num=sim_amount_layers)]:
+            if size == self.num_features: # to ensure that the input layer is not occuring twice
+                continue
+            model = tf.keras.layers.Dense(size)(model)
+            model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
+
         return tf.keras.Model(discInput, model, name="Discriminator")
 
-    def getEncoder(self):
+    def getEncoder(self, sim_amount_layers=10):
         """
-        Return the tensorflow model of the Encoder.
+        Build the tensorflow model of the Encoder with the given depth (sim_amount_layers).
+
+        Return the model.
         """
         encInput = tf.keras.layers.Input(
             shape=(self.num_features), name="EncInput"
         )
         model = tf.keras.layers.Dense(self.num_features)(encInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 4)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(self.latent_dim)(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
+
+        for size in [int(s) for s in np.linspace(self.num_features, self.latent_dim, num=sim_amount_layers)]:
+            if size == self.num_features:
+                continue
+            model = tf.keras.layers.Dense(size)(model)
+            model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
+
         return tf.keras.Model(encInput, model, name="Encoder")
 
-    def getDecoder(self):
-        """
-        Return the tensorflow model of the Decoder.
+    def getDecoder(self, sim_amount_layers=10):
+        """Build the tensorflow model of the Decoder with the given depth (sim_amount_layers).
+
+        Return the model.
         """
         decInput = tf.keras.layers.Input(
             shape=(self.latent_dim), name="DecInput"
         )
         model = tf.keras.layers.Dense(self.latent_dim)(decInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 2)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 4)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(self.num_features)(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
+
+        for size in [int(s) for s in np.linspace(self.latent_dim, self.num_features, num=sim_amount_layers)]:
+            if size == self.latent_dim:
+                continue
+            model = tf.keras.layers.Dense(size)(model)
+            model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
+
         return tf.keras.Model(decInput, model, name="Decoder")
 
 class QuantumDecoderNetworks(Classifier):
@@ -222,41 +233,43 @@ class QuantumDecoderNetworks(Classifier):
         self.discriminator = self.getDiscriminator()
 
 
-    def getDiscriminator(self):
+    def getDiscriminator(self, sim_amount_layers=8):
         """
-        Return the tensorflow model of the Discriminator.
+        Return the tensorflow model of the Discriminator with the given depth (sim_amount_layers).
         """
         discInput = tf.keras.layers.Input(
             shape=(self.num_features), name="DiscInput"
         )
         model = tf.keras.layers.Dense(self.num_features)(discInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.Dense(1, activation="sigmoid")(model)
+        for size in [int(s) for s in np.linspace(self.num_features, 1, num=sim_amount_layers)]:
+            if size == self.num_features: # to ensure that the input layer is not occuring twice
+                continue
+            model = tf.keras.layers.Dense(size)(model)
+            model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         return tf.keras.Model(discInput, model, name="Discriminator")
 
-    def getEncoder(self):
+    def getEncoder(self, sim_amount_layers=10):
         """
-        Return the tensorflow model of the Encoder.
+        Return the tensorflow model of the Encoder with the given depth (sim_amount_layers).
         """
         encInput = tf.keras.layers.Input(
             shape=(self.num_features), name="EncInput"
         )
         model = tf.keras.layers.Dense(self.num_features)(encInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 4)))(model)
-        model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        # sigmoid necessary to map model output to [0, 1] (as quantum-decoder maps that to [0, \pi])
-        model = tf.keras.layers.Dense(self.latent_dim, activation="sigmoid")(model)
+
+        for size in [int(s) for s in np.linspace(self.num_features, self.latent_dim, num=sim_amount_layers)]:
+            if size == self.num_features:
+                continue
+            model = tf.keras.layers.Dense(size)(model)
+            model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
+
         return tf.keras.Model(encInput, model, name="Encoder")
 
-    def getDecoder(self):
+    def getDecoder(self, sim_amount_layers=10):
         """
-        Return the tensorflow model of the Decoder.
+        Return the tensorflow model of the Decoder with the given depth (sim_amount_layers).
         """
         
         tf_dummy_input = tf.keras.Input(shape=(), dtype=tf.string, name="circuit_input")
@@ -292,12 +305,15 @@ class QuantumDecoderNetworks(Classifier):
                                          differentiator=tfq.differentiators.ForwardDifference())(tf_dummy_input)
 
         # upscaling layer
-        upscaling_layer = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 2)))(tf_main_circuit)
+        size_firstDenseLayer = min(self.num_features, int(self.latent_dim * 2))
+        upscaling_layer = tf.keras.layers.Dense(size_firstDenseLayer)(tf_main_circuit)
         upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
-        upscaling_layer = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 4)))(upscaling_layer)
-        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
-        upscaling_layer = tf.keras.layers.Dense(self.num_features)(upscaling_layer)
-        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
+
+        for size in [int(s) for s in np.linspace(size_firstDenseLayer, self.num_features, num=sim_amount_layers)]:
+            if size == size_firstDenseLayer:
+                continue
+            upscaling_layer = tf.keras.layers.Dense(size)(upscaling_layer)
+            upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
         model = tf.keras.Model(tf_dummy_input, upscaling_layer, name="Decoder")
 

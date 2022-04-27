@@ -5,6 +5,7 @@ and the respective training or evaluation steps are triggered.
 """
 import logging
 import traceback
+import warnings # FK: needed to catch warnings as errors with try except
 
 from gan_classifiers.GANomalyNetworks import ClassicalDenseNetworks, QuantumDecoderNetworks
 from gan_classifiers.Trainer import Trainer, QuantumDecoderTrainer
@@ -16,7 +17,7 @@ DEFAULT_ENV_VARIABLES = {
     "method": "classical",
     "train_or_predict": "train",
     "data_filepath": "",
-    "training_steps": 300,
+    "training_steps": 1000,
     "quantum_circuit_type": "standard",
     "quantum_depth": 3,
     "batch_size": 16,
@@ -50,7 +51,9 @@ fh = logging.FileHandler("log.log", mode='w')
 fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(fh)
 
-def main():
+warnings.filterwarnings("error")
+
+def main(sim_train_or_predict): # FK: change
     try:
         # Create Singleton object for the first time with the env variables and perform checks
         envMgr = EnvironmentVariableManager(DEFAULT_ENV_VARIABLES)
@@ -66,20 +69,22 @@ def main():
         classifier = gan_backends[envMgr["method"]]["networks"](data_obj)
         trainer = gan_backends[envMgr["method"]]["trainer"](data_obj, classifier)
         print("The following models will be used:")
-        classifier.print_model_summaries()
+        # classifier.print_model_summaries()
 
-        if envMgr["train_or_predict"] == "train":
+        if sim_train_or_predict == "train": # FK: change
             train_history = trainer.train()
             plotter = gan_backends[envMgr["method"]]["plotter"](train_history, pix_num_one_side=3)
-            plotter.plot()
+            # plotter.plot()
             output_to_json(train_history, fp="model/train_history/train_history.json")
-        elif envMgr["train_or_predict"] == "predict":
+            return train_history
+        elif sim_train_or_predict == "predict": # FK: change
             classifier.loadClassifier()
             results = trainer.calculateMetrics(validation_or_test="test")
             print(results)
             plotter = gan_backends[envMgr["method"]]["plotter"](results, fp="model", pix_num_one_side=3, validation=False)
             plotter.plot()
             output_to_json(results, fp="model/test_results.json")
+            return results
         return
     except Exception as e:
         logger.error("An error occured while processing. Error reads:" '\n' + traceback.format_exc())
@@ -87,4 +92,5 @@ def main():
     print("Run of the GAN classifier has ended")
 
 if __name__ == "__main__":
-    main()
+    main("train")
+    main("predict")

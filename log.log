@@ -1,0 +1,2 @@
+2022-04-27 14:33:06,330 - gan_classifiers.EnvironmentVariableManager - INFO - Running with the following settings:
+{'method': 'classical', 'train_or_predict': 'train', 'data_filepath': '', 'training_steps': 1000, 'quantum_circuit_type': 'standard', 'quantum_depth': 3, 'batch_size': 16, 'discriminator_iterations': 5, 'validation_interval': 10, 'validation_samples': 100, 'discriminator_training_rate': 0.02, 'generator_training_rate': 0.02, 'gradient_penalty_weight': 10.0, 'shots': 100, 'latent_dimensions': 6, 'adv_loss_weight': 1, 'con_loss_weight': 50, 'enc_loss_weight': 1}

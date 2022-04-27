@@ -19,7 +19,7 @@ class DataStorage:
             Input data requires comma-separated csv files with features 
             + class columns per line.
     """      
-    def __init__(self, fp=""):
+    def __init__(self, fp="", print_info=False):
         self.envMgr = EnvironmentVariableManager()
         data_tables = []
         if fp:
@@ -53,6 +53,11 @@ class DataStorage:
         # of normal and unnormal samples
         self.test_data_normal = test_data_normal[:minimum]
         self.test_data_unnormal = test_data_unnormal[:minimum]
+
+        if print_info: # FK: just some logging
+            print("Size of training_data: " + str(len(self.train_data)))
+            print("Size of validation data: " + str(len(self.validation_data_normal) + len(self.validation_data_unnormal)))
+            print("Size of test data: " + str(len(self.test_data_normal) + len(self.test_data_unnormal)))
 
     def get_train_data(self, batch_size):
         return self.train_data.sample(int(batch_size)).to_numpy().astype(np.float64)

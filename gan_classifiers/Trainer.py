@@ -101,7 +101,8 @@ class Trainer:
                 for key, value in metrics.items():
                     self.train_hist[key].append(value)
                 self.train_hist["step_number"].append(self.step_counter)
-                print(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Discriminator loss: {self.d_loss}")
+                # FK: plotting L_adv, L_con and L_enc as well just for information. Remove if not wanted
+                print(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Adversarial loss: {self.adv_loss}, Contextual loss: {self.con_loss}, Encoder loss: {self.enc_loss}, Discriminator loss: {self.d_loss}")
         toc = time.perf_counter()
 
         self.train_hist["total_runtime"] = toc - tic
@@ -227,7 +228,7 @@ class Trainer:
         return gp
 
     def generatorLoss(self, x, x_hat, z, z_hat, d, d_hat):
-        """Calculaete the loss for the generator optimization step.
+        """Calculate the loss for the generator optimization step.
 
         Args:
             x (tf.tensor):
@@ -315,9 +316,10 @@ class Trainer:
             if self.quantum:
                 # Save weights of quantum layer ([1] as [0] is the input_layer)
                 self.train_hist["quantum_weights"].append(self.Classifier.auto_decoder.layers[1].get_weights()[0])
-            if self.best_mcc < res["MCC"]:
-                self.best_mcc = res["MCC"]
-                self.Classifier.save(step=step, MCC=res["MCC"], threshold=res["threshold"], overwrite_best=True)
+            tmp_res = float(str(res["MCC"]).replace(" (nan error)", '')) # FK: needed for nan error, which happens in true_divide by a division with 0
+            if self.best_mcc < tmp_res:
+                self.best_mcc = tmp_res
+                self.Classifier.save(step=step, MCC=tmp_res, threshold=res["threshold"], overwrite_best=True)
                 print("\nModel with new highscore saved!")
         elif validation_or_test == "test":
             res["TP"] = [res["TP"]]
@@ -392,9 +394,12 @@ class Trainer:
         result["TN"] = distribution_below_threshold[-1]
         result["FN"] = distribution_below_threshold[1]
         result["threshold"] = threshold
-        result["MCC"] = (result["TP"] * result["TN"] - result["FP"] * result["FN"]) / (
+        try:
+            result["MCC"] = (result["TP"] * result["TN"] - result["FP"] * result["FN"]) / (
                     (result["TP"] + result["FP"]) * (result["TP"] + result["FN"]) * (result["TN"] + result["FP"]) * (
                         result["TN"] + result["FN"])) ** (1 / 2)
+        except RuntimeWarning or RuntimeError as w:
+            result["MCC"] = "0.0 (nan error)"
 
         return result
 
