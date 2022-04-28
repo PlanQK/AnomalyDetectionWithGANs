@@ -264,15 +264,16 @@ def create_word2vec(cat2news, word2occ, liar_dataset, buzzfeed_dataset, amtAndCe
     return model, cat2news, word2occ
 
 
-def save_embeddings_in_file(cat2embeddings, filepath2save="input_text/liar_and_buzzfeed.csv"):
+def save_embeddings_in_file(cat2embeddings, filepath2save="input_text/liar_and_buzzfeed.csv", used_percentage_of_dataset=1.0):
     """Save the embeddings to a given file path in the following format:
     V1,V2,...,Vx,Class
     ...
     ...
 
     Args:
-        cat2embeddings (dict): dictionary mapping the category [true, false] to the actual embeddings
+        cat2embeddings (dict): dictionary mapping the category [true, false] to the actual embeddings.
         filepath2save (str, optional): The filepath to which the embddings shall be saved. Defaults to "input_text/liar_and_buzzfeed.csv".
+        used_percentage_of_dataset (float, optional): Only use this fraction of the whole dataset. Defaults to 1.0.
     """
 
     with open(filepath2save, 'w', encoding="utf-8") as train_fd:
@@ -288,7 +289,8 @@ def save_embeddings_in_file(cat2embeddings, filepath2save="input_text/liar_and_b
                 for emb in all_embds:
                     all_lines.append(",".join([str(e) for e in emb]) + "," + str(class_id) + '\n')
         rnd.shuffle(all_lines)
-        for line in all_lines:
+        for line in rnd.sample(all_lines, int(used_percentage_of_dataset * len(all_lines))):
+            # FK: TODO add a method to ensure that the used_percentage includes more non-anomalies than anomalies
             train_fd.write(line)
 
 

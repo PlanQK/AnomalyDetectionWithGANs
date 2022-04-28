@@ -60,11 +60,11 @@ def normalize_embeddings(cat2sent_embds):
 
 if __name__ == "__main__":
     liar=True
-    buzzfeed=True
-    amtAndCelebrity=True
+    buzzfeed=False
+    amtAndCelebrity=False
     _, cat2news, word2occ = create_word2vec(dict(), dict(), liar_dataset=liar, buzzfeed_dataset=buzzfeed, amtAndCelebrity=amtAndCelebrity)
 
-    dimensions = 350
+    dimensions = 150
     documents = [doc2vec.TaggedDocument(sent, [i]) for i, sent in enumerate([v.words for vs in cat2news.values() for v in vs])]
     doc_model = doc2vec.Doc2Vec(documents, vector_size=dimensions, min_count=1, epochs=60)
 
@@ -85,4 +85,4 @@ if __name__ == "__main__":
         appends.append("amtCeleb")
     save_path = save_path + '_'.join(appends) + "_sents_" + str(dimensions) + "dim.csv"
 
-    save_embeddings_in_file(normalize_embeddings(cat2sent_embds), filepath2save=save_path)
+    save_embeddings_in_file(normalize_embeddings(cat2sent_embds), filepath2save=save_path, used_percentage_of_dataset=1)
