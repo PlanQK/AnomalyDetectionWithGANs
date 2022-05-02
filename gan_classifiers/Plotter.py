@@ -18,7 +18,7 @@ class Plotter:
             self.loss_plot()
             self.threshold_and_MCC_plot()
             self.confusion_matrix()
-            self.show_pixXpix_samples()
+            # self.show_pixXpix_samples() # FK: only for image data
         else:
             self.confusion_matrix()
 

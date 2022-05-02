@@ -103,6 +103,7 @@ class Trainer:
                 self.train_hist["step_number"].append(self.step_counter)
                 # FK: plotting L_adv, L_con and L_enc as well just for information. Remove if not wanted
                 print(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Adversarial loss: {self.adv_loss}, Contextual loss: {self.con_loss}, Encoder loss: {self.enc_loss}, Discriminator loss: {self.d_loss}")
+                self.train_hist["MCC"][len(self.train_hist["MCC"])-1] = float(str(self.train_hist["MCC"][-1]).replace(" (nan error)", '')) # FK: remove the (nan error) string from the MCC if it is present
         toc = time.perf_counter()
 
         self.train_hist["total_runtime"] = toc - tic

@@ -256,7 +256,10 @@ def create_word2vec(cat2news, word2occ, liar_dataset, buzzfeed_dataset, amtAndCe
     if amtAndCelebrity:
         cat2news, word2occ = _word2vec4AMTandCeleb(cat2news, word2occ)
 
-    print("There are " + str(len(cat2news["true"])) + " true news, " + str(len(cat2news["false"])) + " false news and " + str(len(cat2news["misc"])) + " miscellaneous.")
+    if "misc" in cat2news.keys():
+        print("There are " + str(len(cat2news["true"])) + " true news, " + str(len(cat2news["false"])) + " false news and " + str(len(cat2news["misc"])) + " miscellaneous.")
+    else:
+        print("There are " + str(len(cat2news["true"])) + " true news and " + str(len(cat2news["false"])) + " false news.")
     print("There are " + str(len(word2occ.keys())) + " distinct words in total.")
 
     model = Word2Vec(sentences=[w.words for ws in list(cat2news.values()) for w in ws], min_count=min_word_occ, vector_size=300)

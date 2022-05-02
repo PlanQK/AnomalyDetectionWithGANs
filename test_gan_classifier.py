@@ -68,7 +68,8 @@ def test_n_times(n, gen_dim=10, method="classical"):
             else:
                 tmp[k] = float(v)
         new_results.append(tmp)
-    json.dump(new_results, open(str(method) + "_results_" + str(n) + "times.json", 'w', encoding="utf-8"))
+    with open(str(method) + "_results_" + str(n) + "times.json", 'w', encoding="utf-8") as res_fd: # FK: I run in errors because this file was not closed later on? Therefore: with open() as
+        json.dump(new_results, res_fd)
 
     new_hists = []
     for hist in train_hists:
@@ -86,7 +87,9 @@ def test_n_times(n, gen_dim=10, method="classical"):
             else:
                 tmp[k] = vs
         new_hists.append(tmp)
-    json.dump(new_hists, open(str(method) + "_train_hists_" + str(n) + "times.json", 'w', encoding="utf-8"))
+    
+    with open(str(method) + "_train_hists_" + str(n) + "times.json", 'w', encoding="utf-8") as hist_fd: # FK: to avoid errors with still open files
+        json.dump(new_hists, hist_fd)
 
 
 def display_results(n=35, method="classical", save_plots=True):
@@ -98,7 +101,8 @@ def display_results(n=35, method="classical", save_plots=True):
         method (str, optional): classical or quantum. Needed for reading the correct file path. Defaults to "classical".
         save_plots (bool, optional): Create and save plot of MCC, threshold and losses if True. Defaults to True.
     """
-    results = json.load(open(str(method) + "_results_" + str(n) + "times.json", 'r', encoding="utf-8"))
+    with open(str(method) + "_results_" + str(n) + "times.json", 'r', encoding="utf-8") as res_fd:
+        results = json.load(res_fd)
 
     print("MCC: " + str(np.mean([x["MCC"] for x in results])) + " (mean), " + str(np.median([x["MCC"] for x in results])) + " (median), " + str(np.std([x["MCC"] for x in results])) + " (st dev)")
     print("threshold: " + str(np.mean([x["threshold"] for x in results])) + " (mean), " + str(np.median([x["threshold"] for x in results])) + " (median), " + str(np.std([x["threshold"] for x in results])) + " (st dev)")
@@ -120,6 +124,17 @@ def display_results(n=35, method="classical", save_plots=True):
         plt.cla()
         plt.clf()
 
+        ##### MCC with threshold
+        plt.plot([i for i in range(n)], [x["MCC"] for x in results], color="green", label="MCC")
+        plt.plot([i for i in range(n)], [x["threshold"] for x in results], color="blue", label="optimized anomaly threshold")
+        plt.ylim(0, 1)
+        plt.title("MCC and optimized anomaly threshold after prediciton")
+        plt.legend()
+        plt.xlabel("runs")
+        plt.savefig(str(method) + "_MCC_threshold_" + str(n) + "times.png", bbox_inches="tight")
+        plt.cla()
+        plt.clf()
+
         ##### Threshold
         plt.scatter([i for i in range(n)], [x["threshold"] for x in results])
         plt.title("Threshold after prediction")
@@ -129,17 +144,41 @@ def display_results(n=35, method="classical", save_plots=True):
         plt.cla()
         plt.clf()
 
-    
-    train_hists = json.load(open(str(method) + "_train_hists_" + str(n) + "times.json", 'r', encoding="utf-8"))
-    
+    with open(str(method) + "_train_hists_" + str(n) + "times.json", 'r', encoding="utf-8") as hist_fd:
+        train_hists = json.load(hist_fd)
+    if save_plots:
+        ##### all losses separately
+        for loss in ["contextual_loss", "adversarial_loss", "encoder_loss", "generator_loss", "discriminator_loss"]:
+            for i in range(len(train_hists)):
+                plt.plot(train_hists[i]["step_number"], [i if i < 1000 else 0 for i in train_hists[i][loss]])
+            plt.title(loss)
+            plt.xlabel("runs")
+            plt.savefig(str(method) + '_' + str(loss) + '_' + str(n) + "times.png", bbox_inches="tight")
+            plt.cla()
+            plt.clf()
+        
+        ##### all losses in one
+        for loss, color in zip(["contextual_loss", "adversarial_loss", "encoder_loss", "generator_loss", "discriminator_loss"], ["green", "red", "blue", "black", "purple"]):
+            for i in range(len(train_hists)):
+                line, = plt.plot(train_hists[i]["step_number"], [i if i < 1000 else 0 for i in train_hists[i][loss]], color=color)
+            line.set_label(loss) # FK: only add the label once
+        plt.title("All five losses over all runs")
+        plt.legend()
+        plt.xlabel("runs")
+        plt.savefig(str(method) + "_all_losses_" + str(n) + "times.png", bbox_inches="tight")
+        plt.cla()
+        plt.clf()
 
 
 
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    test_n_times(n=35, method="classical")
-    display_results(n=35, method="classical", save_plots=False)
+    n = 35
+    method = "classical"
+
+    # test_n_times(n=n, method=method)
+    display_results(n=n, method=method, save_plots=False)
 
     toc = time.perf_counter()
     print("Total runtime: ", toc-tic)

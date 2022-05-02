@@ -17,7 +17,7 @@ DEFAULT_ENV_VARIABLES = {
     "method": "classical",
     "train_or_predict": "train",
     "data_filepath": "",
-    "training_steps": 1000,
+    "training_steps": 300,
     "quantum_circuit_type": "standard",
     "quantum_depth": 3,
     "batch_size": 16,
@@ -25,10 +25,10 @@ DEFAULT_ENV_VARIABLES = {
     "validation_interval": 10,
     "validation_samples": 100,
     "discriminator_training_rate": 0.02,
-    "generator_training_rate": 0.02,
+    "generator_training_rate": 0.001,
     "gradient_penalty_weight": 10.0,
     "shots": 100,
-    "latent_dimensions": 6,
+    "latent_dimensions": 12,
     "adv_loss_weight": 1,
     "con_loss_weight": 50,
     "enc_loss_weight": 1,
@@ -74,7 +74,7 @@ def main(sim_train_or_predict): # FK: change
         if sim_train_or_predict == "train": # FK: change
             train_history = trainer.train()
             plotter = gan_backends[envMgr["method"]]["plotter"](train_history, pix_num_one_side=3)
-            # plotter.plot()
+            plotter.plot()
             output_to_json(train_history, fp="model/train_history/train_history.json")
             return train_history
         elif sim_train_or_predict == "predict": # FK: change
