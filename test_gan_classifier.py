@@ -38,14 +38,20 @@ def test_different_dimension():
 
         old_f = f
 
-def test_n_times(n, gen_dim=10, method="classical"):
+def test_n_times(n, gen_dim=10, method="classical", save_results=True):
     """Run the gan_classifier n times and save the results in json files
     Saves the results after prediction in a json file and the train_hist after training (including all losses) in a json file as well.
 
     Args:
         n (int): amount of runs of the gan_classifer
         gen_dim (int, optional): Set the depth of the generator models Encoder and Decoder. Not currently implemented. Defaults to 10.
+        latent_dims (int, optional): Set the amount of latent dimensions. Defaults to 100.
         method (str, optional): classical or quantum. Only needed for setting the file path for saving the results. Defaults to "classical".
+        save_results (bool, optional): Save the prediction results and the training histories in seperate json files. Defaults to True.
+        file_path (str, optional): 
+
+    Returns:
+        list, list: all prediction results, all training histories
     """
     results = []
     train_hists = []
@@ -59,6 +65,7 @@ def test_n_times(n, gen_dim=10, method="classical"):
         if res != None:
             results.append(res)
 
+
     new_results = []
     for res in results: # FK: to avoid some json and int64 errors
         tmp = dict()
@@ -68,8 +75,9 @@ def test_n_times(n, gen_dim=10, method="classical"):
             else:
                 tmp[k] = float(v)
         new_results.append(tmp)
-    with open(str(method) + "_results_" + str(n) + "times.json", 'w', encoding="utf-8") as res_fd: # FK: I run in errors because this file was not closed later on? Therefore: with open() as
-        json.dump(new_results, res_fd)
+    if save_results:
+        with open(str(method) + "_results_" + str(n) + "times.json", 'w', encoding="utf-8") as res_fd: # FK: I run in errors because this file was not closed later on? Therefore: with open() as
+            json.dump(new_results, res_fd)
 
     new_hists = []
     for hist in train_hists:
@@ -88,8 +96,11 @@ def test_n_times(n, gen_dim=10, method="classical"):
                 tmp[k] = vs
         new_hists.append(tmp)
     
-    with open(str(method) + "_train_hists_" + str(n) + "times.json", 'w', encoding="utf-8") as hist_fd: # FK: to avoid errors with still open files
-        json.dump(new_hists, hist_fd)
+    if save_results:
+        with open(str(method) + "_train_hists_" + str(n) + "times.json", 'w', encoding="utf-8") as hist_fd: # FK: to avoid errors with still open files
+            json.dump(new_hists, hist_fd)
+    
+    return new_results, new_hists
 
 
 def display_results(n=35, method="classical", save_plots=True):
@@ -170,15 +181,43 @@ def display_results(n=35, method="classical", save_plots=True):
         plt.clf()
 
 
+def test_latent_dimensions(latent_dim_range, latent_dim_steps, each_run_n, method):
+    """_summary_
+
+    Args:
+        latent_dim_range (tupel): (start of range, end of range)
+        latent_dim_steps (int): amount of steps
+        each_run_n (_type_): _description_
+        method (_type_): _description_
+    """
+    all_MCC_means = []
+    for dim in [int(x) for x in np.linspace(latent_dim_range[0], latent_dim_range[1], latent_dim_steps)]:
+        print(dim)
+        test_n_times(n=each_run_n, method=method, latent_dims=dim)
+        pred_results, train_hists = display_results(n=each_run_n, method=method, save_plots=False)
+        all_MCC_means.append(np.mean([x["MCC"] for x in pred_results]))
+    
+    plt.plot(np.linspace(latent_dim_range[0], latent_dim_range[1], latent_dim_steps), all_MCC_means)
+    plt.title("mean MCCs for different latent dimensions")
+    plt.ylabel("mean MCC")
+    plt.xlabel("latent dimensions")
+    plt.savefig(f"{method}_meanMC_latDim{latent_dim_range[0]}_{latent_dim_range[1]}_{latent_dim_steps}steps.png", bbox_inches="tight")
+    plt.cla()
+    plt.clf()
+
+    return all_MCC_means
+
 
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    n = 35
+    n = 10
     method = "classical"
+    file_path = "input_text/liar_buzzfeed_amtCeleb_sents_150dim_dbowMethod.csv"
 
-    # test_n_times(n=n, method=method)
-    display_results(n=n, method=method, save_plots=False)
+    test_n_times(n=n, method=method)
+    display_results(n=n, method=method, save_plots=True)
+    # test_latent_dimensions((10, 150), latent_dim_steps=15, each_run_n=15, method="classical")
 
     toc = time.perf_counter()
     print("Total runtime: ", toc-tic)

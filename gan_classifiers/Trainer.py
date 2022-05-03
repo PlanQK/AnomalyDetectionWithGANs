@@ -16,7 +16,8 @@ class Trainer:
     def __init__(
             self,
             Data,
-            Classifier
+            Classifier,
+            sim_latent_dims=None
     ):
         """Initialize necessary parameters to train the model via a Wasserstein-Loss based GANomaly ansatz.
         
@@ -26,6 +27,8 @@ class Trainer:
             Classifier: sub-classed Classifier-object defined in GANomalyNetworks.py.
                     opt_disc and opt_gen (tf.keras.optimizer, optional): Optimizer to perform gradient descent.
                     Defaults to Adam.
+            sim_latent_dims (int, optional): Set the amount of latent dimensions for a simulation.
+                    Take the one from the environment manager if None. Defaults to None.
             n_steps (int, optional): Optimization steps. Defaults to 1000.
             batch_size (int, optional): Number of training samples for each
                     optimization step. Defaults to 32.
@@ -48,7 +51,10 @@ class Trainer:
         self.validation = True if self.envMgr["train_or_predict"] == "train" else False
         self.opt_disc = tf.keras.optimizers.Adam(beta_1=0.5, lr=float(self.envMgr["discriminator_training_rate"]))
         self.opt_gen = tf.keras.optimizers.Adam(beta_1=0.5, lr=float(self.envMgr["generator_training_rate"]))
-        self.latent_dim = self.envMgr["latent_dimensions"]
+        if sim_latent_dims == None:
+            self.latent_dim = self.envMgr["latent_dimensions"]
+        else:
+            self.latent_dim = sim_latent_dims
         self.n_steps = self.envMgr["training_steps"]
         self.step_counter = 0
         self.batch_size = self.envMgr["batch_size"]

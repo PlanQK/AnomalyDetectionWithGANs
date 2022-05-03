@@ -1,7 +1,7 @@
 
 from nltk.tokenize import word_tokenize
 
-from gensim.models import Word2Vec
+from gensim.models import Word2Vec, FastText
 
 import numpy as np
 import sys
@@ -73,7 +73,7 @@ def norm_text(text):
     return text
 
 
-def analyze_dataset(dataset_name, current_cat2news, current_word2occ):
+def analyze_dataset(dataset_name, current_cat2news, current_word2occ, plot=False):
     """Provide some meta information about a dataset.
     Print amount of data points and the distributions of true and false news.
     Also plot this distributions
@@ -98,15 +98,16 @@ def analyze_dataset(dataset_name, current_cat2news, current_word2occ):
     print("\tthe distribution of the lengths can be found in the created plot: " + str(plot_path))
     print()
 
-    plt.hist([true_lengths, false_lengths], label=["true", "false"], bins=20)
-    plt.title(dataset_name + " corpus")
-    plt.xlabel("words per news")
-    plt.ylim(0, 1100)
-    plt.legend()
-    plt.savefig(plot_path, bbox_inches="tight")
+    if plot:
+        plt.hist([true_lengths, false_lengths], label=["true", "false"], bins=20)
+        plt.title(dataset_name + " corpus")
+        plt.xlabel("words per news")
+        plt.ylim(0, 1100)
+        plt.legend()
+        plt.savefig(plot_path, bbox_inches="tight")
 
-    plt.cla()
-    plt.clf()
+        plt.cla()
+        plt.clf()
 
 
 def add_words_to_word2occ(word2occ, new_text):
@@ -301,6 +302,8 @@ if __name__ == "__main__":
     model, cat2news, word2occ = create_word2vec(dict(), dict())
     
     model.save("input_text/word2vec.model")
+
+    FastText()
 
     # old_wv = {w:model.wv[w] for w, occ in word2occ.items() if occ >= min_word_occ}
     # get_value_range(word2occ, old_wv)

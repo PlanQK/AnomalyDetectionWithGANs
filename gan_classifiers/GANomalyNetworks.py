@@ -210,6 +210,9 @@ class ClassicalDenseNetworks(Classifier):
             model = tf.keras.layers.Dense(size)(model)
             model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
 
+        # FK: currently not working. Seems like an error with compatibility of keras and tensorflow. Not sure, though, cause it works for quantum
+        # tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)
+        
         return tf.keras.Model(decInput, model, name="Decoder")
 
 class QuantumDecoderNetworks(Classifier):
@@ -267,9 +270,11 @@ class QuantumDecoderNetworks(Classifier):
 
         return tf.keras.Model(encInput, model, name="Encoder")
 
-    def getDecoder(self, sim_amount_layers=10):
+    def getDecoder(self, sim_amount_layers=10, plot_model=False):
         """
         Return the tensorflow model of the Decoder with the given depth (sim_amount_layers).
+
+        You can plot the architecture of the model into a model.png file, if you set the argument plot_model to True
         """
         
         tf_dummy_input = tf.keras.Input(shape=(), dtype=tf.string, name="circuit_input")
@@ -296,9 +301,13 @@ class QuantumDecoderNetworks(Classifier):
         self.quantum_weights = qc_instance.inputParams.tolist() + qc_instance.controlParams.tolist()
         circuit = qc_instance.buildCircuit()
 
+        print(circuit)
+
         # readout
         readout = qc_instance.getReadOut()
         self.quantum_circuit = circuit + readout
+
+        print(self.quantum_circuit)
 
         # build main quantum circuit
         tf_main_circuit = tfq.layers.PQC(circuit, readout, repetitions=int(self.repetitions),
@@ -316,6 +325,9 @@ class QuantumDecoderNetworks(Classifier):
             upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
         model = tf.keras.Model(tf_dummy_input, upscaling_layer, name="Decoder")
+
+        if plot_model:
+            tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)
 
         return model
 

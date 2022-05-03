@@ -59,16 +59,16 @@ def normalize_embeddings(cat2sent_embds):
 
 
 if __name__ == "__main__":
-    liar=False
-    buzzfeed=False
+    liar=True
+    buzzfeed=True
     amtAndCelebrity=True
-    dimensions = 250
-    used_percentage = 1
+    dimensions = 150
+    dm_or_dbow = "dbow"
 
     _, cat2news, word2occ = create_word2vec(dict(), dict(), liar_dataset=liar, buzzfeed_dataset=buzzfeed, amtAndCelebrity=amtAndCelebrity)
 
     documents = [doc2vec.TaggedDocument(sent, [i]) for i, sent in enumerate([v.words for vs in cat2news.values() for v in vs])]
-    doc_model = doc2vec.Doc2Vec(documents, vector_size=dimensions, min_count=1, epochs=60)
+    doc_model = doc2vec.Doc2Vec(documents, vector_size=dimensions, min_count=1, epochs=60, dm=1 if dm_or_dbow=="dm" else 0)
 
     cat2sent_embds = dict()
     for cat, news in cat2news.items():
@@ -85,6 +85,6 @@ if __name__ == "__main__":
         appends.append("buzzfeed")
     if amtAndCelebrity:
         appends.append("amtCeleb")
-    save_path = save_path + '_'.join(appends) + "_sents_" + str(dimensions) + "dim_" + str(int(used_percentage*100)) + "perc.csv"
+    save_path = save_path + '_'.join(appends) + "_sents_" + str(dimensions) + "dim_" + str(dm_or_dbow) + "Method.csv"
 
-    save_embeddings_in_file(normalize_embeddings(cat2sent_embds), filepath2save=save_path, used_percentage_of_dataset=used_percentage)
+    save_embeddings_in_file(normalize_embeddings(cat2sent_embds), filepath2save=save_path)

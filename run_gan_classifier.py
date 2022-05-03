@@ -28,7 +28,7 @@ DEFAULT_ENV_VARIABLES = {
     "generator_training_rate": 0.001,
     "gradient_penalty_weight": 10.0,
     "shots": 100,
-    "latent_dimensions": 12,
+    "latent_dimensions": 100,
     "adv_loss_weight": 1,
     "con_loss_weight": 50,
     "enc_loss_weight": 1,
