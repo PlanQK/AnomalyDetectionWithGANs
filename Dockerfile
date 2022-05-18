@@ -1,5 +1,5 @@
 # Define parent image
-FROM ubuntu:latest
+FROM ubuntu:focal
 
 # Create directories, set working directory
 RUN mkdir /quantum-anomaly
