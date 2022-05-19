@@ -83,22 +83,21 @@ def analyze_dataset(dataset_name, current_cat2news, current_word2occ, plot=False
         current_cat2news (dict): mapping the category (true or false) to the corresponding news
         current_word2occ (dict): mapping the words to their amount of occurrences
     """
-    plot_path = str(dataset_name) + "_allLengths.png"
-    print("--------------------------------")
-    print("The " + str(dataset_name) + " dataset")
-    print("\tvocabulary (= amount of distinct words) = " + str(len(current_word2occ)))
-    print("\tamount of false news = " + str(len(current_cat2news["false"])))
-    print("\tamount of true news = " + str(len(current_cat2news["true"])))
-    all_lengths = [len(v.words) for key, vs in current_cat2news.items() if key in ["true", "false"] for v in vs]
-    true_lengths = [len(v.words) for key, vs in current_cat2news.items() if key in ["true"] for v in vs]
-    false_lengths = [len(v.words) for key, vs in current_cat2news.items() if key in ["false"] for v in vs]
-    print("\tlength of all news = " + str(np.mean(all_lengths)) + " (mean), " + str(np.median(all_lengths)) + " (median), " + str(np.min(all_lengths)) + " (shortest), " + str(np.max(all_lengths)) + " (longest)")
-    print("\tlength of true news = " + str(np.mean(true_lengths)) + " (mean), " + str(np.median(true_lengths)) + " (median), " + str(np.min(true_lengths)) + " (shortest), " + str(np.max(true_lengths)) + " (longest)")
-    print("\tlength of false news = " + str(np.mean(false_lengths)) + " (mean), " + str(np.median(false_lengths)) + " (median), " + str(np.min(false_lengths)) + " (shortest), " + str(np.max(false_lengths)) + " (longest)")
-    print("\tthe distribution of the lengths can be found in the created plot: " + str(plot_path))
-    print()
-
     if plot:
+        plot_path = str(dataset_name) + "_allLengths.png"
+        print("--------------------------------")
+        print("The " + str(dataset_name) + " dataset")
+        print("\tvocabulary (= amount of distinct words) = " + str(len(current_word2occ)))
+        print("\tamount of false news = " + str(len(current_cat2news["false"])))
+        print("\tamount of true news = " + str(len(current_cat2news["true"])))
+        all_lengths = [len(v.words) for key, vs in current_cat2news.items() if key in ["true", "false"] for v in vs]
+        true_lengths = [len(v.words) for key, vs in current_cat2news.items() if key in ["true"] for v in vs]
+        false_lengths = [len(v.words) for key, vs in current_cat2news.items() if key in ["false"] for v in vs]
+        print("\tlength of all news = " + str(np.mean(all_lengths)) + " (mean), " + str(np.median(all_lengths)) + " (median), " + str(np.min(all_lengths)) + " (shortest), " + str(np.max(all_lengths)) + " (longest)")
+        print("\tlength of true news = " + str(np.mean(true_lengths)) + " (mean), " + str(np.median(true_lengths)) + " (median), " + str(np.min(true_lengths)) + " (shortest), " + str(np.max(true_lengths)) + " (longest)")
+        print("\tlength of false news = " + str(np.mean(false_lengths)) + " (mean), " + str(np.median(false_lengths)) + " (median), " + str(np.min(false_lengths)) + " (shortest), " + str(np.max(false_lengths)) + " (longest)")
+        print("\tthe distribution of the lengths can be found in the created plot: " + str(plot_path))
+        print()
         plt.hist([true_lengths, false_lengths], label=["true", "false"], bins=20)
         plt.title(dataset_name + " corpus")
         plt.xlabel("words per news")

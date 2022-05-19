@@ -57,18 +57,11 @@ def normalize_embeddings(cat2sent_embds):
     return normed
 
 
-
-if __name__ == "__main__":
-    liar=True
-    buzzfeed=True
-    amtAndCelebrity=True
-    dimensions = 150
-    dm_or_dbow = "dbow"
-
-    _, cat2news, word2occ = create_word2vec(dict(), dict(), liar_dataset=liar, buzzfeed_dataset=buzzfeed, amtAndCelebrity=amtAndCelebrity)
+def main(liar, buzzfeed, amtAndCeleb, dims, dm_or_dbow, path2save="input_text/"):
+    _, cat2news, _ = create_word2vec(dict(), dict(), liar_dataset=liar, buzzfeed_dataset=buzzfeed, amtAndCelebrity=amtAndCeleb)
 
     documents = [doc2vec.TaggedDocument(sent, [i]) for i, sent in enumerate([v.words for vs in cat2news.values() for v in vs])]
-    doc_model = doc2vec.Doc2Vec(documents, vector_size=dimensions, min_count=1, epochs=60, dm=1 if dm_or_dbow=="dm" else 0)
+    doc_model = doc2vec.Doc2Vec(documents, vector_size=dims, min_count=1, epochs=60, dm=1 if dm_or_dbow=="dm" else 0)
 
     cat2sent_embds = dict()
     for cat, news in cat2news.items():
@@ -77,14 +70,22 @@ if __name__ == "__main__":
         for new in news:
             cat2sent_embds[cat].append(doc_model.infer_vector(new.words))
 
-    save_path = "input_text/"
     appends = []
     if liar:
         appends.append("liar")
     if buzzfeed:
         appends.append("buzzfeed")
-    if amtAndCelebrity:
+    if amtAndCeleb:
         appends.append("amtCeleb")
-    save_path = save_path + '_'.join(appends) + "_sents_" + str(dimensions) + "dim_" + str(dm_or_dbow) + "Method.csv"
+    save_path = path2save + '_'.join(appends) + "_sents_" + str(dims) + "dim_" + str(dm_or_dbow) + "Method.csv"
 
     save_embeddings_in_file(normalize_embeddings(cat2sent_embds), filepath2save=save_path)
+
+if __name__ == "__main__":
+    liar=True
+    buzzfeed=False
+    amtAndCelebrity=False
+    dimensions = 250
+    dm_or_dbow = "dbow"
+    
+    main(liar, buzzfeed, amtAndCelebrity, dimensions, dm_or_dbow)

@@ -1,4 +1,5 @@
 
+import doc2vec_FK as d2v
 import run_gan_classifier as gan
 
 from matplotlib import pyplot as plt
@@ -7,6 +8,7 @@ import time
 import shutil
 import numpy as np
 import json
+import os
 
 
 def test_different_dimension():
@@ -38,24 +40,33 @@ def test_different_dimension():
 
         old_f = f
 
-def test_n_times(n, gen_dim=10, method="classical", save_results=True):
+def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_results=True):
     """Run the gan_classifier n times and save the results in json files
     Saves the results after prediction in a json file and the train_hist after training (including all losses) in a json file as well.
 
     Args:
         n (int): amount of runs of the gan_classifer
         gen_dim (int, optional): Set the depth of the generator models Encoder and Decoder. Not currently implemented. Defaults to 10.
-        latent_dims (int, optional): Set the amount of latent dimensions. Defaults to 100.
         method (str, optional): classical or quantum. Only needed for setting the file path for saving the results. Defaults to "classical".
+        calc_embeddings (bool, optional): Set to caclulate new embeddings each time you run the classifier. Defaults to True.
         save_results (bool, optional): Save the prediction results and the training histories in seperate json files. Defaults to True.
-        file_path (str, optional): 
 
     Returns:
         list, list: all prediction results, all training histories
     """
+
     results = []
     train_hists = []
     for _ in range(n):
+        # first check if new embeddings have to be calculated
+        if calc_embeddings:
+            # move all existing input files
+            for f in os.listdir("input_data"):
+                if os.path.isfile(f):
+                    shutil.move("input_data/" + f, "input_text/" + f)
+
+            d2v.main(True, False, False, 150, "dbow", "input_data/")
+        
         train_hist = gan.main("train")
         if train_hist == None:
             print("Train history was None. Check log.log file")
@@ -161,7 +172,7 @@ def display_results(n=35, method="classical", save_plots=True):
         ##### all losses separately
         for loss in ["contextual_loss", "adversarial_loss", "encoder_loss", "generator_loss", "discriminator_loss"]:
             for i in range(len(train_hists)):
-                plt.plot(train_hists[i]["step_number"], [i if i < 1000 else 0 for i in train_hists[i][loss]])
+                plt.plot(train_hists[i]["step_number"], [i for i in train_hists[i][loss]]) # if i < 1000 else 0
             plt.title(loss)
             plt.xlabel("runs")
             plt.savefig(str(method) + '_' + str(loss) + '_' + str(n) + "times.png", bbox_inches="tight")
@@ -171,7 +182,7 @@ def display_results(n=35, method="classical", save_plots=True):
         ##### all losses in one
         for loss, color in zip(["contextual_loss", "adversarial_loss", "encoder_loss", "generator_loss", "discriminator_loss"], ["green", "red", "blue", "black", "purple"]):
             for i in range(len(train_hists)):
-                line, = plt.plot(train_hists[i]["step_number"], [i if i < 1000 else 0 for i in train_hists[i][loss]], color=color)
+                line, = plt.plot(train_hists[i]["step_number"], [i for i in train_hists[i][loss]], color=color) # if i < 1000 else 0 
             line.set_label(loss) # FK: only add the label once
         plt.title("All five losses over all runs")
         plt.legend()
@@ -211,9 +222,9 @@ def test_latent_dimensions(latent_dim_range, latent_dim_steps, each_run_n, metho
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    n = 10
+    n = 35
     method = "classical"
-    file_path = "input_text/liar_buzzfeed_amtCeleb_sents_150dim_dbowMethod.csv"
+    #file_path = "input_text/liar_buzzfeed_amtCeleb_sents_150dim_dbowMethod.csv"
 
     test_n_times(n=n, method=method)
     display_results(n=n, method=method, save_plots=True)

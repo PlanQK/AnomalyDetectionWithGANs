@@ -14,13 +14,14 @@ from gan_classifiers.DataProcessor import DataStorage, output_to_json
 from gan_classifiers.Plotter import Plotter, QuantumDecoderPlotter
 
 DEFAULT_ENV_VARIABLES = {
-    "method": "classical",
+    "method": "quantum",
     "train_or_predict": "train",
     "data_filepath": "",
+    "test_one_sample": "",
     "training_steps": 300,
     "quantum_circuit_type": "standard",
     "quantum_depth": 3,
-    "batch_size": 16,
+    "batch_size": 64,
     "discriminator_iterations": 5,
     "validation_interval": 10,
     "validation_samples": 100,
@@ -28,7 +29,7 @@ DEFAULT_ENV_VARIABLES = {
     "generator_training_rate": 0.001,
     "gradient_penalty_weight": 10.0,
     "shots": 100,
-    "latent_dimensions": 100,
+    "latent_dimensions": 50,
     "adv_loss_weight": 1,
     "con_loss_weight": 50,
     "enc_loss_weight": 1,
