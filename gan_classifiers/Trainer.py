@@ -129,10 +129,16 @@ class Trainer:
                 z = self.Classifier.auto_encoder(
                     x, training=True
                 )
-                z_quantum = self.transform_z_to_z_quantum(z)
-                x_hat = self.Classifier.auto_decoder(
-                    z_quantum, training=True
+                x_hat = self.Classifier.decoder_training_step(
+                    z, training=True
                 )
+                # if self.envMgr["method"] == "classical":
+                #     z_quantum = self.transform_z_to_z_quantum(z)
+                #     x_hat = self.Classifier.auto_decoder(
+                #         z_quantum, training=True
+                #     )
+                # elif self.envMgr["method"] == "quantum":
+                #     x_hat = self.Classifier.decoder_training_step(z, training=True)
                 z_hat = self.Classifier.encoder(
                     x_hat, training=True
                 )
@@ -283,10 +289,11 @@ class Trainer:
         z_normal = self.Classifier.auto_encoder(
             x_normal, training=False
         )
-        z_quantum_normal = self.transform_z_to_z_quantum(z_normal)
-        x_hat_normal = self.Classifier.auto_decoder(
-            z_quantum_normal, training=False
-        )
+        x_hat_normal = self.Classifier.decoder_training_step(z_normal, training=False)
+        # z_quantum_normal = self.transform_z_to_z_quantum(z_normal)
+        # x_hat_normal = self.Classifier.auto_decoder(
+        #     z_quantum_normal, training=False
+        # )
         z_hat_normal = self.Classifier.encoder(
             x_hat_normal, training=False
         )
@@ -296,10 +303,11 @@ class Trainer:
         z_unnormal = self.Classifier.auto_encoder(
             x_unnormal, training=False
         )
-        z_quantum_unnormal = self.transform_z_to_z_quantum(z_unnormal)            
-        x_hat_unnormal = self.Classifier.auto_decoder(
-            z_quantum_unnormal, training=False
-        )
+        x_hat_unnormal = self.Classifier.decoder_training_step(z_unnormal, training=False)
+        # z_quantum_unnormal = self.transform_z_to_z_quantum(z_unnormal)            
+        # x_hat_unnormal = self.Classifier.auto_decoder(
+        #     z_quantum_unnormal, training=False
+        # )
         z_hat_unnormal = self.Classifier.encoder(
             x_hat_unnormal, training=False
         )
@@ -425,13 +433,14 @@ class QuantumDecoderTrainer(Trainer):
         self.quantum = True
 
     def transform_z_to_z_quantum(self, z):
+        # return z
         z_np = z.numpy()
         result = []
         for i in range(len(z_np)):
             circuit = cirq.Circuit()
             transformed_inputs = 2 * np.arcsin(z_np[i])
             for j in range(int(self.latent_dim)):
-                circuit.append(cirq.rx(transformed_inputs[j]).on(self.Classifier.qubits[j]))
+                circuit.append(cirq.rx(transformed_inputs[j]).on(self.Classifier.qubits[j%10])) # TODO remove the magic number
             result.append(circuit)
         result = tfq.convert_to_tensor(result)
         stop = "stop"

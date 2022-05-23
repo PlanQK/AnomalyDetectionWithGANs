@@ -222,11 +222,11 @@ def test_latent_dimensions(latent_dim_range, latent_dim_steps, each_run_n, metho
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    n = 35
-    method = "classical"
+    n = 5
+    method = "quantum"
     #file_path = "input_text/liar_buzzfeed_amtCeleb_sents_150dim_dbowMethod.csv"
 
-    test_n_times(n=n, method=method)
+    test_n_times(n=n, method=method, calc_embeddings=False)
     display_results(n=n, method=method, save_plots=True)
     # test_latent_dimensions((10, 150), latent_dim_steps=15, each_run_n=15, method="classical")
 

@@ -68,6 +68,14 @@ class Classifier:
             discriminator ([type]): Tensorflow model for the discriminator
         """
         raise NotImplementedError("Need to use the derived class")
+    
+    def decoder_training_step(self):
+        """_summary_
+
+        Raises:
+            NotImplementedError: meant to only be executed from the derived class
+        """
+        raise NotImplementedError("Need to use the derived class")
 
     def print_model_summaries(self):
         """
@@ -215,6 +223,9 @@ class ClassicalDenseNetworks(Classifier):
         
         return tf.keras.Model(decInput, model, name="Decoder")
 
+    def decoder_training_step(self, encoded_data, training=True):
+        return self.auto_decoder(encoded_data, training=training)
+
 class QuantumDecoderNetworks(Classifier):
     """
     Class containing all required network structures for the GANomaly method as classical dense networks.
@@ -225,7 +236,11 @@ class QuantumDecoderNetworks(Classifier):
         """
         super().__init__(data=data)
         self.repetitions = self.envMgr["shots"]
-        self.qubits = cirq.GridQubit.rect(1, self.latent_dim)
+        # self.qubits = cirq.GridQubit.rect(1, self.latent_dim)
+        self.amount_qubits = 10
+        self.qubits = cirq.GridQubit.rect(1, self.amount_qubits)
+        self.amount_circuits = int(self.num_features / self.amount_qubits) # TODO this has to be more refined when not 150 - 50
+
         self.quantum_weights = None
         self.quantum_circuit = None
         self.quantum_circuit_type = self.envMgr["quantum_circuit_type"]
@@ -269,6 +284,41 @@ class QuantumDecoderNetworks(Classifier):
             model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
 
         return tf.keras.Model(encInput, model, name="Encoder")
+    
+    def decoder_training_step(self, encoded_data, training=True):
+        """Do one training step for the quantum decoder.
+        The encoded data (specifically, a batch from it) is needed
+
+        Args:
+            encoded_data (tensorflow.Tensor): the input data which got encoded by the Encoder
+            training (bool, optional): training or validation phase. Defaults to True.
+
+        Returns:
+            tensorflow.Tensor: decoded data = the encoded data which got processed in the quantum decoder
+        """
+        counter = 0
+        end_result = []
+        for i in range(1, self.amount_circuits+1): # do it for every circuit
+            input_slice = self.transform_zPart_to_z_quantum(encoded_data, counter)
+            step_result = self.auto_decoder(input_slice, training=training)
+            if i % 3 == 0:
+                counter += 1
+            end_result.append(step_result)
+        return tf.cast(tf.concat(end_result, 1), dtype=tf.dtypes.float64)
+
+    def transform_zPart_to_z_quantum(self, z, step):
+        # return z
+        z_np = z.numpy()
+        result = []
+        for i in range(len(z_np)):
+            circuit = cirq.Circuit()
+            transformed_inputs = 2 * np.arcsin(z_np[i])
+            for j in range(step*self.amount_qubits, (step+1)*self.amount_qubits):
+                circuit.append(cirq.rx(transformed_inputs[j]).on(self.qubits[j%self.amount_qubits]))
+            result.append(circuit)
+        result = tfq.convert_to_tensor(result)
+        stop = "stop"
+        return result
 
     def getDecoder(self, sim_amount_layers=10, plot_model=False):
         """
@@ -314,17 +364,17 @@ class QuantumDecoderNetworks(Classifier):
                                          differentiator=tfq.differentiators.ForwardDifference())(tf_dummy_input)
 
         # upscaling layer
-        size_firstDenseLayer = min(self.num_features, int(self.latent_dim * 2))
-        upscaling_layer = tf.keras.layers.Dense(size_firstDenseLayer)(tf_main_circuit)
-        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
+        # size_firstDenseLayer = min(self.num_features, int(self.latent_dim * 2))
+        # upscaling_layer = tf.keras.layers.Dense(size_firstDenseLayer)(tf_main_circuit)
+        # upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
-        for size in [int(s) for s in np.linspace(size_firstDenseLayer, self.num_features, num=sim_amount_layers)]:
-            if size == size_firstDenseLayer:
-                continue
-            upscaling_layer = tf.keras.layers.Dense(size)(upscaling_layer)
-            upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
+        # for size in [int(s) for s in np.linspace(size_firstDenseLayer, self.num_features, num=sim_amount_layers)]:
+        #     if size == size_firstDenseLayer:
+        #         continue
+        #     upscaling_layer = tf.keras.layers.Dense(size)(upscaling_layer)
+        #     upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
-        model = tf.keras.Model(tf_dummy_input, upscaling_layer, name="Decoder")
+        model = tf.keras.Model(tf_dummy_input, tf_main_circuit, name="Decoder")
 
         if plot_model:
             tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)

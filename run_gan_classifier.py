@@ -4,6 +4,7 @@ The parameters of the model are obtained from the environment variables
 and the respective training or evaluation steps are triggered.
 """
 import logging
+import time
 import traceback
 import warnings # FK: needed to catch warnings as errors with try except
 
@@ -93,5 +94,10 @@ def main(sim_train_or_predict): # FK: change
     print("Run of the GAN classifier has ended")
 
 if __name__ == "__main__":
+    tic = time.perf_counter()
+
     main("train")
     main("predict")
+
+    toc = time.perf_counter()
+    print("time needed: " + str(toc-tic))
