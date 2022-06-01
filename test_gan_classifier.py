@@ -55,8 +55,14 @@ def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_r
         list, list: all prediction results, all training histories
     """
 
-    results = []
-    train_hists = []
+    results = {
+        "classical": [],
+        "quantum": []
+    }
+    train_hists = {
+        "classical": [],
+        "quantum": []
+    }
     for _ in range(n):
         # first check if new embeddings have to be calculated
         if calc_embeddings:
@@ -65,52 +71,62 @@ def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_r
                 if os.path.isfile(f):
                     shutil.move("input_data/" + f, "input_text/" + f)
 
-            d2v.main(True, False, False, 150, "dbow", "input_data/")
+            d2v.main(True, False, False, 150, "dm", "input_data/")
         
-        train_hist = gan.main("train")
-        if train_hist == None:
-            print("Train history was None. Check log.log file")
-        else:
-            train_hists.append(train_hist)
-        res = gan.main("predict")
-        if res != None:
-            results.append(res)
-
-
-    new_results = []
-    for res in results: # FK: to avoid some json and int64 errors
-        tmp = dict()
-        for k, v in res.items():
-            if isinstance(v, list):
-                tmp[k] = int(v[0])
+        for meth in train_hists.keys():
+            train_hist = gan.main("train", meth)
+            if train_hist == None:
+                print("Train history was None. Check log.log file")
             else:
-                tmp[k] = float(v)
-        new_results.append(tmp)
+                train_hists[meth].append(train_hist)
+
+            res = gan.main("predict", meth)
+            if res != None:
+                results[meth].append(res)
+
+
+    new_results = {
+        "classical": [],
+        "quantum": []
+    }
+    for meth, ress in results.items(): # FK: to avoid some json and int64 errors
+        for res in ress:
+            tmp = dict()
+            for k, v in res.items():
+                if isinstance(v, list):
+                    tmp[k] = int(v[0])
+                else:
+                    tmp[k] = float(v)
+            new_results[meth].append(tmp)
     if save_results:
         with open(str(method) + "_results_" + str(n) + "times.json", 'w', encoding="utf-8") as res_fd: # FK: I run in errors because this file was not closed later on? Therefore: with open() as
             json.dump(new_results, res_fd)
 
-    new_hists = []
-    for hist in train_hists:
-        tmp = dict()
-        for k, vs in hist.items():
-            if isinstance(vs, list):
-                tmp[k] = []
-                for v in vs:
-                    if isinstance(v, float):
-                        tmp[k].append(float(v))
-                    elif isinstance(v, int):
-                        tmp[k].append(float(v))
-                    else:
-                        tmp[k].append(str(v))
-            else:
-                tmp[k] = vs
-        new_hists.append(tmp)
-    
+    new_hists = {
+        "classical": [],
+        "quantum": []
+    }
+    for meth, hists in train_hists.items():
+        for hist in hists:
+            tmp = dict()
+            for k, vs in hist.items():
+                if isinstance(vs, list):
+                    tmp[k] = []
+                    for v in vs:
+                        if isinstance(v, float):
+                            tmp[k].append(float(v))
+                        elif isinstance(v, int):
+                            tmp[k].append(float(v))
+                        else:
+                            tmp[k].append(str(v))
+                else:
+                    tmp[k] = vs
+            new_hists[meth].append(tmp)
+
     if save_results:
         with open(str(method) + "_train_hists_" + str(n) + "times.json", 'w', encoding="utf-8") as hist_fd: # FK: to avoid errors with still open files
             json.dump(new_hists, hist_fd)
-    
+
     return new_results, new_hists
 
 
@@ -126,29 +142,37 @@ def display_results(n=35, method="classical", save_plots=True):
     with open(str(method) + "_results_" + str(n) + "times.json", 'r', encoding="utf-8") as res_fd:
         results = json.load(res_fd)
 
-    print("MCC: " + str(np.mean([x["MCC"] for x in results])) + " (mean), " + str(np.median([x["MCC"] for x in results])) + " (median), " + str(np.std([x["MCC"] for x in results])) + " (st dev)")
-    print("threshold: " + str(np.mean([x["threshold"] for x in results])) + " (mean), " + str(np.median([x["threshold"] for x in results])) + " (median), " + str(np.std([x["threshold"] for x in results])) + " (st dev)")
+    print("MCC class: " + str(np.mean([x["MCC"] for x in results["classical"]])) + " (mean), " + str(np.median([x["MCC"] for x in results["classical"]])) + " (median), " + str(np.std([x["MCC"] for x in results["classical"]])) + " (st dev)")
+    print("threshold class: " + str(np.mean([x["threshold"] for x in results["classical"]])) + " (mean), " + str(np.median([x["threshold"] for x in results["classical"]])) + " (median), " + str(np.std([x["threshold"] for x in results["classical"]])) + " (st dev)")
+
+    print("MCC quan: " + str(np.mean([x["MCC"] for x in results["quantum"]])) + " (mean), " + str(np.median([x["MCC"] for x in results["quantum"]])) + " (median), " + str(np.std([x["MCC"] for x in results["quantum"]])) + " (st dev)")
+    print("threshold quan: " + str(np.mean([x["threshold"] for x in results["quantum"]])) + " (mean), " + str(np.median([x["threshold"] for x in results["quantum"]])) + " (median), " + str(np.std([x["threshold"] for x in results["quantum"]])) + " (st dev)")
 
     if save_plots:
         ##### MCC
-        plt.scatter([i for i in range(n)], [x["MCC"] for x in results])
+        for meth, color in zip(["classical", "quantum"], ["blue", "black"]):
+            plt.scatter([i for i in range(n)], [x["MCC"] for x in results[meth]],
+                        c=[color for _ in range(n)], label=meth)
         plt.ylim(0, 1)
         plt.title("MCC after prediction")
         plt.ylabel("MCC")
         plt.xlabel("runs")
+        plt.legend()
         plt.savefig(str(method) + "_MCC_" + str(n) + "times.png", bbox_inches="tight")
         plt.cla()
         plt.clf()
 
-        plt.boxplot([x["MCC"] for x in results])
+        plt.boxplot([[x["MCC"] for x in results["classical"]], [x["MCC"] for x in results["quantum"]]], showmeans=True, labels=["classical", "quantum"])
         plt.ylabel("MCC")
         plt.savefig(str(method) + "_MCC_boxplot_" + str(n) + "times.png", bbox_inches="tight")
         plt.cla()
         plt.clf()
 
         ##### MCC with threshold
-        plt.plot([i for i in range(n)], [x["MCC"] for x in results], color="green", label="MCC")
-        plt.plot([i for i in range(n)], [x["threshold"] for x in results], color="blue", label="optimized anomaly threshold")
+        for meth, color in zip(["classical", "quantum"], ["blue", "black"]):
+            plt.plot([i for i in range(n)], [x["MCC"] for x in results[meth]], color=color, label=f"MCC-{meth}")
+            plt.plot([i for i in range(n)], [x["threshold"] for x in results[meth]], color=color,
+                     linestyle="dashed", label=f"optimized anomaly threshold-{meth}")
         plt.ylim(0, 1)
         plt.title("MCC and optimized anomaly threshold after prediciton")
         plt.legend()
@@ -158,17 +182,20 @@ def display_results(n=35, method="classical", save_plots=True):
         plt.clf()
 
         ##### Threshold
-        plt.scatter([i for i in range(n)], [x["threshold"] for x in results])
+        for meth, color in zip(["classical", "quantum"], ["blue", "black"]):
+            plt.scatter([i for i in range(n)], [x["threshold"] for x in results[meth]],
+                        c=[color for _ in range(n)], label=meth)
         plt.title("Threshold after prediction")
         plt.xlabel("runs")
         plt.ylabel("threshold")
+        plt.legend()
         plt.savefig(str(method) + "_threshold_" + str(n) + "times.png", bbox_inches="tight")
         plt.cla()
         plt.clf()
 
     with open(str(method) + "_train_hists_" + str(n) + "times.json", 'r', encoding="utf-8") as hist_fd:
         train_hists = json.load(hist_fd)
-    if save_plots:
+    if save_plots and not save_plots: # TODO remove
         ##### all losses separately
         for loss in ["contextual_loss", "adversarial_loss", "encoder_loss", "generator_loss", "discriminator_loss"]:
             for i in range(len(train_hists)):
@@ -222,13 +249,11 @@ def test_latent_dimensions(latent_dim_range, latent_dim_steps, each_run_n, metho
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    n = 5
-    method = "quantum"
-    #file_path = "input_text/liar_buzzfeed_amtCeleb_sents_150dim_dbowMethod.csv"
+    n = 3
+    method = "both"
 
-    test_n_times(n=n, method=method, calc_embeddings=False)
+    # test_n_times(n=n, method=method, calc_embeddings=False)
     display_results(n=n, method=method, save_plots=True)
-    # test_latent_dimensions((10, 150), latent_dim_steps=15, each_run_n=15, method="classical")
 
     toc = time.perf_counter()
     print("Total runtime: ", toc-tic)

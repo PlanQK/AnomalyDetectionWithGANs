@@ -300,7 +300,7 @@ class QuantumDecoderNetworks(Classifier):
         end_result = []
         for i in range(1, self.amount_circuits+1): # do it for every circuit
             input_slice = self.transform_zPart_to_z_quantum(encoded_data, counter)
-            step_result = self.auto_decoder(input_slice, training=training)
+            step_result = self.auto_decoder[i-1](input_slice, training=training)
             if i % 3 == 0:
                 counter += 1
             end_result.append(step_result)
@@ -326,60 +326,64 @@ class QuantumDecoderNetworks(Classifier):
 
         You can plot the architecture of the model into a model.png file, if you set the argument plot_model to True
         """
+
+        all_models = []
+        for i in range(self.amount_circuits):
         
-        tf_dummy_input = tf.keras.Input(shape=(), dtype=tf.string, name="circuit_input")
+            tf_dummy_input = tf.keras.Input(shape=(), dtype=tf.string, name="circuit_input")
 
-        if self.quantum_circuit_type == "standard":
-            qc_instance = StandardCircuit(self.qubits)
-        elif self.quantum_circuit_type == "CompleteRotationCircuitIdentity":
-            qc_instance = CompleteRotationCircuitIdentity(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "CompleteRotationCircuitRandom":
-            qc_instance = CompleteRotationCircuitRandom(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "StrongEntanglementIdentity":
-            qc_instance = StrongEntanglementIdentity(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "StrongEntanglementRandom":
-            qc_instance = StrongEntanglementRandom(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "LittleEntanglementIdentity":
-            qc_instance = LittleEntanglementIdentity(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "LittleEntanglementRandom":
-            qc_instance = LittleEntanglementRandom(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "SemiClassicalIdentity":
-            qc_instance = SemiClassicalIdentity(self.qubits, self.totalNumCycles)
-        elif self.quantum_circuit_type == "SemiClassicalRandom":
-            qc_instance = SemiClassicalRandom(self.qubits, self.totalNumCycles)
+            if self.quantum_circuit_type == "standard":
+                qc_instance = StandardCircuit(self.qubits)
+            elif self.quantum_circuit_type == "CompleteRotationCircuitIdentity":
+                qc_instance = CompleteRotationCircuitIdentity(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "CompleteRotationCircuitRandom":
+                qc_instance = CompleteRotationCircuitRandom(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "StrongEntanglementIdentity":
+                qc_instance = StrongEntanglementIdentity(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "StrongEntanglementRandom":
+                qc_instance = StrongEntanglementRandom(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "LittleEntanglementIdentity":
+                qc_instance = LittleEntanglementIdentity(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "LittleEntanglementRandom":
+                qc_instance = LittleEntanglementRandom(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "SemiClassicalIdentity":
+                qc_instance = SemiClassicalIdentity(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "SemiClassicalRandom":
+                qc_instance = SemiClassicalRandom(self.qubits, self.totalNumCycles)
 
-        self.quantum_weights = qc_instance.inputParams.tolist() + qc_instance.controlParams.tolist()
-        circuit = qc_instance.buildCircuit()
+            self.quantum_weights = qc_instance.inputParams.tolist() + qc_instance.controlParams.tolist()
+            circuit = qc_instance.buildCircuit()
 
-        print(circuit)
+            # print(circuit)
 
-        # readout
-        readout = qc_instance.getReadOut()
-        self.quantum_circuit = circuit + readout
+            # readout
+            readout = qc_instance.getReadOut()
+            self.quantum_circuit = circuit + readout
 
-        print(self.quantum_circuit)
+            # print(self.quantum_circuit)
 
-        # build main quantum circuit
-        tf_main_circuit = tfq.layers.PQC(circuit, readout, repetitions=int(self.repetitions),
-                                         differentiator=tfq.differentiators.ForwardDifference())(tf_dummy_input)
+            # build main quantum circuit
+            tf_main_circuit = tfq.layers.PQC(circuit, readout, repetitions=int(self.repetitions),
+                                                differentiator=tfq.differentiators.ForwardDifference())(tf_dummy_input)
 
-        # upscaling layer
-        # size_firstDenseLayer = min(self.num_features, int(self.latent_dim * 2))
-        # upscaling_layer = tf.keras.layers.Dense(size_firstDenseLayer)(tf_main_circuit)
-        # upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
+            # upscaling layer
+            # size_firstDenseLayer = min(self.num_features, int(self.latent_dim * 2))
+            # upscaling_layer = tf.keras.layers.Dense(size_firstDenseLayer)(tf_main_circuit)
+            # upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
-        # for size in [int(s) for s in np.linspace(size_firstDenseLayer, self.num_features, num=sim_amount_layers)]:
-        #     if size == size_firstDenseLayer:
-        #         continue
-        #     upscaling_layer = tf.keras.layers.Dense(size)(upscaling_layer)
-        #     upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
+            # for size in [int(s) for s in np.linspace(size_firstDenseLayer, self.num_features, num=sim_amount_layers)]:
+            #     if size == size_firstDenseLayer:
+            #         continue
+            #     upscaling_layer = tf.keras.layers.Dense(size)(upscaling_layer)
+            #     upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
-        model = tf.keras.Model(tf_dummy_input, tf_main_circuit, name="Decoder")
+            model = tf.keras.Model(tf_dummy_input, tf_main_circuit, name="Decoder")
+            all_models.append(model)
 
-        if plot_model:
-            tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)
+            if plot_model:
+                tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)
 
-        return model
+        return all_models
 
     def print_model_summaries(self):
         """
@@ -387,7 +391,71 @@ class QuantumDecoderNetworks(Classifier):
         of its occurrences.
         """
         self.auto_encoder.summary()
-        self.auto_decoder.summary()
+        self.auto_decoder[0].summary()
         print("Quantum-Layer in decoder:\n")
         print(self.quantum_circuit)
         self.discriminator.summary()
+
+    def save(self, step, MCC, threshold, overwrite_best=False):
+        """Store the trained weights and parameters."""
+        if overwrite_best:
+            data = {
+                "latent_dim": self.latent_dim,
+                "threshold": threshold,
+            }
+            self.threshold = threshold
+            self.auto_encoder.save_weights(
+                f"model/checkpoint/{self.__class__.__name__}_auto_encoder_weights"
+            )
+            for i in range(len(self.auto_decoder)):
+                self.auto_decoder[i].save_weights(
+                    f"model/checkpoint/{self.__class__.__name__}_auto_decoder_weights"
+                )
+            self.encoder.save_weights(
+                f"model/checkpoint/{self.__class__.__name__}_encoder_weights"
+            )
+            self.discriminator.save_weights(
+                f"model/checkpoint/{self.__class__.__name__}_discriminator_weights"
+            )
+            with open(
+                f"model/checkpoint/{self.__class__.__name__}_other_parameters", "w"
+            ) as json_file:
+                json.dump(data, json_file)
+
+        self.auto_encoder.save_weights(
+            f"model/checkpoint/{self.__class__.__name__}_auto_encoder_weights_step_{step}_MCC_{MCC:.2f}"
+        )
+        for i in range(len(self.auto_decoder)):
+            self.auto_decoder[i].save_weights(
+                f"model/checkpoint/{self.__class__.__name__}_auto_decoder_weights_{step}_MCC_{MCC:.2f}"
+            )
+        self.encoder.save_weights(
+            f"model/checkpoint/{self.__class__.__name__}_encoder_weights_{step}_MCC_{MCC:.2f}"
+        )
+        self.discriminator.save_weights(
+            f"model/checkpoint/{self.__class__.__name__}_discriminator_weights_{step}_MCC_{MCC:.2f}"
+        )
+
+        return None
+
+    def loadClassifier(self):
+        """Load a previously trained classifier from files."""
+        data = {}
+        with open(f"model/checkpoint/{self.__class__.__name__}_other_parameters") as json_file:
+            data = json.load(json_file)
+        self.latent_dim = data["latent_dim"]
+        self.threshold = data["threshold"]
+        self.auto_encoder.load_weights(
+            f"model/checkpoint/{self.__class__.__name__}_auto_encoder_weights"
+        )
+        for i in range(len(self.auto_decoder)):
+            self.auto_decoder[i].load_weights(
+                f"model/checkpoint/{self.__class__.__name__}_auto_decoder_weights"
+            )
+        self.encoder.load_weights(
+            f"model/checkpoint/{self.__class__.__name__}_encoder_weights"
+        )
+        self.discriminator.load_weights(
+            f"model/checkpoint/{self.__class__.__name__}_discriminator_weights"
+        )
+        return None

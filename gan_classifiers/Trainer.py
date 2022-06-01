@@ -132,13 +132,6 @@ class Trainer:
                 x_hat = self.Classifier.decoder_training_step(
                     z, training=True
                 )
-                # if self.envMgr["method"] == "classical":
-                #     z_quantum = self.transform_z_to_z_quantum(z)
-                #     x_hat = self.Classifier.auto_decoder(
-                #         z_quantum, training=True
-                #     )
-                # elif self.envMgr["method"] == "quantum":
-                #     x_hat = self.Classifier.decoder_training_step(z, training=True)
                 z_hat = self.Classifier.encoder(
                     x_hat, training=True
                 )
@@ -153,6 +146,7 @@ class Trainer:
                 d_cost = self.discriminatorLoss(d, d_hat)
                 gp = self.gradient_penalty(x, x_hat)
                 d_loss = d_cost + gp * float(self.gradient_penalty_weight)
+                # print(d_cost, gp, d_loss)
 
                 # generator losses
                 if i == (int(self.discriminator_iterations) - 1):
@@ -165,6 +159,7 @@ class Trainer:
                     self.d_loss = float(d_loss)
 
             # Get the gradients w.r.t the discriminator loss
+            # print(self.Classifier.discriminator.trainable_variables)
             d_gradient = tape.gradient(
                 d_loss, self.Classifier.discriminator.trainable_variables
             )
@@ -175,13 +170,16 @@ class Trainer:
 
             # Update the weights of the generator
             if i == (int(self.discriminator_iterations) - 1):
+                decoder_vars = self.Classifier.auto_decoder[0].trainable_variables
+                for i in range(1, len(self.Classifier.auto_decoder)):
+                    decoder_vars += self.Classifier.auto_decoder[i].trainable_variables
                 gen_gradient = tape.gradient(
                     g_loss,
-                    self.Classifier.auto_encoder.trainable_variables + self.Classifier.auto_decoder.trainable_variables + self.Classifier.encoder.trainable_variables
+                    self.Classifier.auto_encoder.trainable_variables + decoder_vars + self.Classifier.encoder.trainable_variables
                 )
                 self.opt_gen.apply_gradients(
                     zip(gen_gradient,
-                        self.Classifier.auto_encoder.trainable_variables + self.Classifier.auto_decoder.trainable_variables + self.Classifier.encoder.trainable_variables)
+                        self.Classifier.auto_encoder.trainable_variables + decoder_vars + self.Classifier.encoder.trainable_variables)
                 )
 
         return None
@@ -330,7 +328,7 @@ class Trainer:
             res["x_hat_unnormal_samples"] = x_hat_unnormal_samples
             if self.quantum:
                 # Save weights of quantum layer ([1] as [0] is the input_layer)
-                self.train_hist["quantum_weights"].append(self.Classifier.auto_decoder.layers[1].get_weights()[0])
+                [self.train_hist["quantum_weights"].append(x.layers[1].get_weights()[0]) for x in self.Classifier.auto_decoder]
             tmp_res = float(str(res["MCC"]).replace(" (nan error)", '')) # FK: needed for nan error, which happens in true_divide by a division with 0
             if self.best_mcc < tmp_res:
                 self.best_mcc = tmp_res

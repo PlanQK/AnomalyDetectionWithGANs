@@ -19,15 +19,15 @@ DEFAULT_ENV_VARIABLES = {
     "train_or_predict": "train",
     "data_filepath": "",
     "test_one_sample": "",
-    "training_steps": 300,
+    "training_steps": 50,
     "quantum_circuit_type": "standard",
     "quantum_depth": 3,
     "batch_size": 64,
     "discriminator_iterations": 5,
     "validation_interval": 10,
-    "validation_samples": 100,
+    "validation_samples": 200,
     "discriminator_training_rate": 0.02,
-    "generator_training_rate": 0.001,
+    "generator_training_rate": 0.008,
     "gradient_penalty_weight": 10.0,
     "shots": 100,
     "latent_dimensions": 50,
@@ -55,7 +55,7 @@ logger.addHandler(fh)
 
 warnings.filterwarnings("error")
 
-def main(sim_train_or_predict): # FK: change
+def main(sim_train_or_predict, sim_method): # FK: change
     try:
         # Create Singleton object for the first time with the env variables and perform checks
         envMgr = EnvironmentVariableManager(DEFAULT_ENV_VARIABLES)
@@ -68,22 +68,22 @@ def main(sim_train_or_predict): # FK: change
         logger.debug("Data loaded successfully.")
 
         # Train or evaluate the classifier
-        classifier = gan_backends[envMgr["method"]]["networks"](data_obj)
-        trainer = gan_backends[envMgr["method"]]["trainer"](data_obj, classifier)
+        classifier = gan_backends[sim_method]["networks"](data_obj)
+        trainer = gan_backends[sim_method]["trainer"](data_obj, classifier) # envMgr["method"]
         print("The following models will be used:")
         # classifier.print_model_summaries()
 
         if sim_train_or_predict == "train": # FK: change
             train_history = trainer.train()
-            plotter = gan_backends[envMgr["method"]]["plotter"](train_history, pix_num_one_side=3)
-            plotter.plot()
+            plotter = gan_backends[sim_method]["plotter"](train_history, pix_num_one_side=3)
+            # plotter.plot()
             output_to_json(train_history, fp="model/train_history/train_history.json")
             return train_history
         elif sim_train_or_predict == "predict": # FK: change
             classifier.loadClassifier()
             results = trainer.calculateMetrics(validation_or_test="test")
             print(results)
-            plotter = gan_backends[envMgr["method"]]["plotter"](results, fp="model", pix_num_one_side=3, validation=False)
+            plotter = gan_backends[sim_method]["plotter"](results, fp="model", pix_num_one_side=3, validation=False)
             plotter.plot()
             output_to_json(results, fp="model/test_results.json")
             return results
@@ -96,8 +96,8 @@ def main(sim_train_or_predict): # FK: change
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    main("train")
-    main("predict")
+    main("train", sim_method="quantum")
+    main("predict", sim_method="quantum")
 
     toc = time.perf_counter()
     print("time needed: " + str(toc-tic))
