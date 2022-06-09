@@ -1,6 +1,7 @@
 """
 This file holds classes which contain the neural network classifiers of the GANomaly model.
 """
+from base64 import encode
 import logging
 import json
 import numpy as np
@@ -12,7 +13,7 @@ import tensorflow_quantum as tfq
 from gan_classifiers.EnvironmentVariableManager import EnvironmentVariableManager
 from gan_classifiers.QuantumCircuits import CompleteRotationCircuitIdentity, CompleteRotationCircuitRandom, \
     StandardCircuit, StrongEntanglementIdentity, StrongEntanglementRandom, LittleEntanglementIdentity, \
-    LittleEntanglementRandom, SemiClassicalIdentity, SemiClassicalRandom
+    LittleEntanglementRandom, SemiClassicalIdentity, SemiClassicalRandom, ReUploadingPrescribedPQC
 
 logger = logging.getLogger(__name__ + ".py") 
 
@@ -299,23 +300,61 @@ class QuantumDecoderNetworks(Classifier):
         Returns:
             tensorflow.Tensor: decoded data = the encoded data which got processed in the quantum decoder
         """
-        counter = 0
-        end_result = []
-        for i in range(1, self.amount_circuits+1): # do it for every circuit
-            input_slice = self.transform_zPart_to_z_quantum(encoded_data, counter)
-            step_result = self.auto_decoder[i-1](input_slice, training=training)
-            if i % 3 == 0:
-                counter += 1
-            end_result.append(step_result)
-        return tf.cast(tf.concat(end_result, 1), dtype=tf.dtypes.float64)
+        all_results = []
 
-    def transform_zPart_to_z_quantum(self, z, step):
+        indices = []
+        enc_dim = encoded_data.shape[1]
+        step_size = int(self.num_features / enc_dim)
+        counter = -1
+        for feat in range(self.num_features):
+            if feat % step_size == 0:
+                counter += 1
+            
+            if counter >= enc_dim:
+                counter = 0
+            indices.append(counter)
+
+        cnt = 1
+        for feat in range(self.num_features):
+            idx = (cnt + (feat % step_size)) % enc_dim
+            indices.append(idx)
+
+            if feat % step_size == (step_size-1):
+                cnt += 1
+
+        enc = encoded_data.numpy()
+        for i in range(encoded_data.shape[0]): # for every sample in the batch
+            one_sample_all = []
+            for idx in indices:
+                one_sample_all.append(enc[i][idx])
+            
+            for circ in range(self.amount_circuits):
+                one_sample_result = self.auto_decoder[circ](one_sample_all[(circ*self.amount_qubits*2):((circ+1)*self.amount_qubits*2)],
+                                                            training=training)
+                all_results.append(one_sample_result)
+
+        return tf.cast(tf.concat(all_results, 1), dtype=tf.dtypes.float64)
+
+    def get_part_of_input(self, enc_data, step):
+        """_summary_
+
+        Args:
+            enc_data (_type_): _description_
+            step (_type_): _description_
+
+        Returns:
+            tf.Variable: tensor for input to the auto decoder. shape has to be (1, x) with x = numQubits*2
+        """
         # return z
-        z_np = z.numpy()
+        z_np = enc_data.numpy()
         result = []
-        for i in range(len(z_np)):
+        for i in range(len(z_np)): # iterate over every encoded input
             circuit = cirq.Circuit()
             transformed_inputs = 2 * np.arcsin(z_np[i])
+            counter = 1
+            while(counter <= 3):
+                circuit.append(cirq.rx())
+                counter += 1
             for j in range(step*self.amount_qubits, (step+1)*self.amount_qubits):
                 circuit.append(cirq.rx(transformed_inputs[j]).on(self.qubits[j%self.amount_qubits]))
             result.append(circuit)
@@ -353,6 +392,20 @@ class QuantumDecoderNetworks(Classifier):
                 qc_instance = SemiClassicalIdentity(self.qubits, self.totalNumCycles)
             elif self.quantum_circuit_type == "SemiClassicalRandom":
                 qc_instance = SemiClassicalRandom(self.qubits, self.totalNumCycles)
+            elif self.quantum_circuit_type == "FakeNewsCustom":
+                tfq_layer = ReUploadingPrescribedPQC()
+                input_shape = tf.keras.Input(shape=tfq_layer.numFeatures, dtype=tf.dtypes.float32, name="input")
+                expec = tfq_layer([input_shape])
+
+                model = tf.keras.Model(inputs=[input_shape], outputs=expec, name="Decoder")
+                model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=.02),
+                              loss=tf.keras.losses.MeanSquaredError())
+
+                all_models.append(model)
+                if plot_model:
+                    tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)
+
+                continue
 
             self.quantum_weights = qc_instance.inputParams.tolist() + qc_instance.controlParams.tolist()
             circuit = qc_instance.buildCircuit()

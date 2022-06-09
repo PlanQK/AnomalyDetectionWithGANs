@@ -135,9 +135,9 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
         ----------
         inputs: np.ndarray shape of List[0] = [batch_dim, data_length]
         """
-        # Get lenght of first input
+        # Get length of first input
         # structure of the input list of [batches of inputs]
-        # the list lenght corresponds to the number of "actions" and is assumed to
+        # the list length corresponds to the number of "actions" and is assumed to
         # be one here
         # the batch dimension is the number of different inputs that we are
         # considering here
@@ -145,7 +145,7 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
         # print(batch_dim)
 
         # we always need to specify an circuit object, that preprocesses the |0>
-        # state. If we don't want that, we input and empty circuit
+        # state. If we don't want that, we input an empty circuit
         tiled_up_circuits = tf.repeat(tfq.convert_to_tensor([cq.Circuit()]),
                                       repeats=batch_dim)
         tiled_up_theta_vals = tf.tile(self.theta_val, multiples=[batch_dim, 1])
@@ -180,7 +180,7 @@ if __name__ == "__main__":
                                 outputs=expec)
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.02)
-    # self.optimizer = tf.keras.optimizers.SGD(learning_rate=0.02)
+    # optimizer = tf.keras.optimizers.SGD(learning_rate=0.02)
     loss = tf.keras.losses.MeanSquaredError()
 
     model.compile(optimizer=optimizer, loss=loss)

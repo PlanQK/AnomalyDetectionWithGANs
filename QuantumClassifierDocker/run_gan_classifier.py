@@ -20,7 +20,7 @@ DEFAULT_ENV_VARIABLES = {
     "data_filepath": "",
     "test_one_sample": "",
     "training_steps": 100,
-    "quantum_circuit_type": "standard",
+    "quantum_circuit_type": "FakeNewsCustom",
     "quantum_depth": 3,
     "batch_size": 64,
     "discriminator_iterations": 5,

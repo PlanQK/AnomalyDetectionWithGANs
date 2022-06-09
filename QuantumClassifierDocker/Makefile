@@ -1,3 +1,3 @@
 
 main:
-	python3 test_gan_classifier.py
+	nohup python test_gan_classifier.py && sudo shutdown
