@@ -6,21 +6,6 @@ from gensim.models import doc2vec
 
 from word2vec_FK import create_word2vec, save_embeddings_in_file
 
-from matplotlib import pyplot as plt
-
-
-
-def analyze_data(cat2news):
-    """Don't know, some old method. Maybe not needed anymore
-
-    Args:
-        cat2news (_type_): _description_
-    """
-    plt.hist([len(v) for vs in cat2news.values() for v in vs], range= (0, 600))
-    plt.savefig("tmp.png", bbox_inches="tight")
-
-    # print(np.mean([len(v) for vs in cat2news.values() for v in vs]))
-
 
 def get_value_range(cat2embeddings):
     """Print the minimum and maximum value of the given embeddings
@@ -53,11 +38,21 @@ def normalize_embeddings(cat2sent_embds):
     for cat, embds in cat2sent_embds.items():
         normed[cat] = ( (embds - np.min(embds)) / (np.max(embds) - np.min(embds)) )
 
-    # get_value_range(normed)
     return normed
 
 
-def main(liar, buzzfeed, amtAndCeleb, dims, dm_or_dbow, path2save="input_text/"):
+def main(dims, dm_or_dbow, liar=True, buzzfeed=False, amtAndCeleb=False, path2save="input_text/"):
+    """Create a Doc2Vec neural model based on `gensim` and the following article: http://arxiv.org/abs/1405.4053v2. The training material for the model are all news of the parameter-specified data sets.
+    Infer the news of all parameter-specified data sets and save them in a json file.
+
+    Args:
+        dims (int): the amount of dimensions for the numeric paragraph embeddings
+        dm_or_dbow (str): "dm" or "dbow". Defines the method of the creation of the paragraph embeddings. Check the article in the above description for reference.
+        liar (bool, optional): IF True, the liar dataset will be included in the Doc2Vec model. Defaults to True.
+        buzzfeed (bool, optional): If True, the buzzfeed dataset will be included in the Doc2Vec model. Defaults to True.
+        amtAndCeleb (bool, optional): If True, the AMTandCelebrity dataset will be included in the Doc2Vev model. Defaults to True.
+        path2save (str, optional): Defines the prefix of the file path in which to save the new embeddings. Defaults to "input_text/".
+    """
     _, cat2news, _ = create_word2vec(dict(), dict(), liar_dataset=liar, buzzfeed_dataset=buzzfeed, amtAndCelebrity=amtAndCeleb)
 
     documents = [doc2vec.TaggedDocument(sent, [i]) for i, sent in enumerate([v.words for vs in cat2news.values() for v in vs])]
@@ -82,10 +77,7 @@ def main(liar, buzzfeed, amtAndCeleb, dims, dm_or_dbow, path2save="input_text/")
     save_embeddings_in_file(normalize_embeddings(cat2sent_embds), filepath2save=save_path)
 
 if __name__ == "__main__":
-    liar=True
-    buzzfeed=False
-    amtAndCelebrity=False
-    dimensions = 250
-    dm_or_dbow = "dbow"
+    dimensions = 150
+    dm_or_dbow = "dm"
     
-    main(liar, buzzfeed, amtAndCelebrity, dimensions, dm_or_dbow)
+    main(dimensions, dm_or_dbow)

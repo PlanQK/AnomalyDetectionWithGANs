@@ -76,7 +76,7 @@ def norm_text(text):
 def analyze_dataset(dataset_name, current_cat2news, current_word2occ, plot=False):
     """Provide some meta information about a dataset.
     Print amount of data points and the distributions of true and false news.
-    Also plot this distributions
+    Also plot these distributions
 
     Args:
         dataset_name (str): name of the corpus
@@ -273,6 +273,8 @@ def save_embeddings_in_file(cat2embeddings, filepath2save="input_text/liar_and_b
     ...
     ...
 
+    NB: Currently, the used_percentage_of_dataset does not ensure, that there are more non-anomalies than anomalies.
+
     Args:
         cat2embeddings (dict): dictionary mapping the category [true, false] to the actual embeddings.
         filepath2save (str, optional): The filepath to which the embddings shall be saved. Defaults to "input_text/liar_and_buzzfeed.csv".
@@ -293,32 +295,10 @@ def save_embeddings_in_file(cat2embeddings, filepath2save="input_text/liar_and_b
                     all_lines.append(",".join([str(e) for e in emb]) + "," + str(class_id) + '\n')
         rnd.shuffle(all_lines)
         for line in rnd.sample(all_lines, int(used_percentage_of_dataset * len(all_lines))):
-            # FK: TODO add a method to ensure that the used_percentage includes more non-anomalies than anomalies
             train_fd.write(line)
 
 
 if __name__ == "__main__":
     model, cat2news, word2occ = create_word2vec(dict(), dict())
-    
+
     model.save("input_text/word2vec.model")
-
-    FastText()
-
-    # old_wv = {w:model.wv[w] for w, occ in word2occ.items() if occ >= min_word_occ}
-    # get_value_range(word2occ, old_wv)
-
-    # new_wv = normalize_data(old_wv)
-    # get_value_range(word2occ, new_wv)
-
-    # partitioned_embds = dict()
-    # # add partitions of size window_length
-    # for news_class, sents in cat2news.items():
-    #     if news_class in ["false", "true"]:
-    #         if not news_class in partitioned_embds.keys():
-    #             partitioned_embds[news_class] = []
-    #         for sen in sents:
-    #             for i in range(len(sen)+1-window_length):
-    #                 embds = []
-    #                 for w in sen[i:i+window_length]:
-    #                     embds += list(new_wv[w.lower()])
-    #                 partitioned_embds[news_class].append(embds)
