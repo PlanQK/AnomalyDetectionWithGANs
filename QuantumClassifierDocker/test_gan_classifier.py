@@ -248,7 +248,7 @@ def test_latent_dimensions(latent_dim_range, latent_dim_steps, each_run_n, metho
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    n = 1
+    n = 3
     method = "both"
 
     test_n_times(n=n, method=method, calc_embeddings=False)

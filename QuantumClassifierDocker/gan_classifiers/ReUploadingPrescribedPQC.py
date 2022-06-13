@@ -34,9 +34,12 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
     Code from the xAI Use Case
     c Patrick Steinmueller
     """
-    def __init__(self,
+    def __init__(self, num_qubits,
                  name="re-uploading_prescribed_PQC"):
         super(ReUploadingPrescribedPQC, self).__init__(name=name)
+        self.numQubits = num_qubits
+        self.numFeatures = int(num_qubits * 2)          # input data
+        self.numParameters = int(self.numFeatures * 2)  # trainable parameters
         self.generateCircuitForGAN()
 
     def initialize(self, generationFunction: Generator[cq.Operation, None, None]) -> None:
@@ -90,9 +93,6 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
         # => self.abstractLayer(nicht_dupliziert_numerische_werte)
 
     def generateCircuitForGAN(self):
-        self.numParameters = 40   # trainable parameters
-        self.numFeatures = 20     # input data
-        self.numQubits = 10
 
         def makeCircuit():
             # 1st input

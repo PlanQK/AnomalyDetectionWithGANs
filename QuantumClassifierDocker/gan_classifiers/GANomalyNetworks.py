@@ -327,13 +327,20 @@ class QuantumDecoderNetworks(Classifier):
             one_sample_all = []
             for idx in indices:
                 one_sample_all.append(enc[i][idx])
-            
-            for circ in range(self.amount_circuits):
-                one_sample_result = self.auto_decoder[circ](one_sample_all[(circ*self.amount_qubits*2):((circ+1)*self.amount_qubits*2)],
-                                                            training=training)
-                all_results.append(one_sample_result)
 
-        return tf.cast(tf.concat(all_results, 1), dtype=tf.dtypes.float64)
+            one_sample_result = []
+            for circ in range(self.amount_circuits):
+                tmp = one_sample_all[(circ*self.amount_qubits*2):((circ+1)*self.amount_qubits*2)]
+                tmp = tf.constant([tmp], dtype=tf.float64)
+                circ_result = self.auto_decoder[circ](tmp,
+                                                            training=training)
+                one_sample_result.append(tf.cast(circ_result[0], dtype=tf.dtypes.float64))
+            
+            all_results.append(tf.concat(one_sample_result, 0))
+
+        tmp = tf.cast(all_results, dtype=tf.dtypes.float64)
+
+        return tf.cast(all_results, dtype=tf.dtypes.float64)
 
     def get_part_of_input(self, enc_data, step):
         """_summary_
