@@ -105,3 +105,9 @@ their default values and a short explanation.
     validation_interval: 10  how often the performance of the GAN is checked against the validation set (in terms of training steps) and the optimal anomaly threshold is determined
     validation_samples: 100 number of validation samples used (e.g. if 100, then 100 normal and 100 unnormal samples will be used)
 ```
+
+## Documentation
+Further information about the algorithm and the implementation can be found on the PlanQK platform under https://platform.planqk.de/ or in our paper https://doi.org/10.1088/2058-9565/ac0d4d
+
+## Contributing
+When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
