@@ -8,39 +8,10 @@ import time
 import shutil
 import numpy as np
 import json
-import os
+import os, sys
 
 
-def test_different_dimension():
-    """Test method to try out different dimensions of the GAN model.
-    Run the gan_classifier several times, each time with different depths of Encoder, Decoder and Disciminator
-
-    Save the prediction MCC for each run in a plot
-
-    Old method (not currently used)
-    """
-    f_start = "input_text/"
-    f_dst = "input_data/"
-    old_f = ""
-    for f in ["liar_and_buzzfeed_sentence_150dim.csv", "liar_and_buzzfeed_sentence_250dim.csv", "liar_and_buzzfeed_sentence_350dim.csv"]:
-        if not old_f == "": # remove old one
-            shutil.move(src=f_dst + old_f, dst=f_start + f)
-
-        shutil.move(src=f_start + f, dst=f_dst + f)
-        test_runs_start = 10
-        test_runs_end = 14
-        results = []
-        for i in range(test_runs_start, test_runs_end):
-            res = gan.main("train", i)
-            res = gan.main("predict", i)
-            if res != None:
-                results.append(res)
-        plt.plot([x for x in range(test_runs_start, test_runs_end)], [x["MCC"] for x in results])
-        plt.savefig(str(f) + "_" + str(test_runs_end - test_runs_start) + "runs.png")
-
-        old_f = f
-
-def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_results=True):
+def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_results=True, par_number=-1):
     """Run the gan_classifier n times and save the results in json files
     Saves the results after prediction in a json file and the train_hist after training (including all losses) in a json file as well.
 
@@ -50,6 +21,7 @@ def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_r
         method (str, optional): classical or quantum. Only needed for setting the file path for saving the results. Defaults to "classical".
         calc_embeddings (bool, optional): Set to caclulate new embeddings each time you run the classifier. Defaults to True.
         save_results (bool, optional): Save the prediction results and the training histories in seperate json files. Defaults to True.
+        par_number (int, optional): Save the results to a specific "part" file of the complete result. Defaults to -1.
 
     Returns:
         list, list: all prediction results, all training histories
@@ -99,7 +71,8 @@ def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_r
                     tmp[k] = float(v)
             new_results[meth].append(tmp)
     if save_results:
-        with open(str(method) + "_results_" + str(n) + "times.json", 'w', encoding="utf-8") as res_fd: # FK: I run in errors because this file was not closed later on? Therefore: with open() as
+        with open(str(method) + "_results_" + str(n) + "times" + (str("_" + str(par_number)) if int(par_number)!=-1 else "") + ".json", 'w',
+                  encoding="utf-8") as res_fd: 
             json.dump(new_results, res_fd)
 
     new_hists = {
@@ -123,10 +96,47 @@ def test_n_times(n, gen_dim=10, method="classical", calc_embeddings=True, save_r
                     tmp[k] = vs
             new_hists[meth].append(tmp)
     if save_results:
-        with open(str(method) + "_train_hists_" + str(n) + "times.json", 'w', encoding="utf-8") as hist_fd: # FK: to avoid errors with still open files
+        with open(str(method) + "_train_hists_" + str(n) + "times" + (str("_" + str(par_number)) if int(par_number)!=-1 else "") + ".json", 'w',
+                  encoding="utf-8") as hist_fd:
             json.dump(new_hists, hist_fd)
 
     return new_results, new_hists
+
+
+def merge_par_results(n=35, method="classical", file_path='./'):
+    """Merge the part results of parallel run test runs.
+    Save them all together in one json file
+
+    Args:
+        n (int, optional): amount of runs of the gan_classifer. Defaults to 35.
+        method (str, optional): classical or quantum. Only needed for setting the file path for saving the results. Defaults to "classical".
+        file_path (str, optional): the location in which the separated runs are located. Defaults to './'.
+
+    Returns:
+        int: the amount of test runs
+    """
+    for res_type in ["results", "train_hists"]:
+        amount = 0
+        print(res_type)
+        all_classical = []
+        all_quantum = []
+        for file in os.listdir(file_path):
+            if method in file and res_type in file: # and file.endswith(".json")
+                with open(file_path + file, 'r', encoding="utf-8") as js_fd:
+                    one_result = json.load(js_fd)
+                    [all_classical.append(cla) for cla in one_result["classical"]]
+                    [all_quantum.append(cla) for cla in one_result["quantum"]]
+                amount += 1
+        complete_results = {
+            "classical": all_classical,
+            "quantum": all_quantum
+        }
+        with open(str(method) + '_' + str(res_type) + '_' + str(int(amount)) + "times.json", 'w', encoding="utf-8") as js_fd:
+            json.dump(complete_results, js_fd)
+    
+    return amount
+
+
 
 
 def display_results(n=35, method="classical", save_plots=True):
@@ -248,10 +258,14 @@ def test_latent_dimensions(latent_dim_range, latent_dim_steps, each_run_n, metho
 if __name__ == "__main__":
     tic = time.perf_counter()
 
-    n = 3
+    parallel_number = -1
+    if len(sys.argv) > 1:
+        parallel_number = sys.argv[1]
+    n = 1
     method = "both"
 
-    test_n_times(n=n, method=method, calc_embeddings=False)
+    # test_n_times(n=n, method=method, calc_embeddings=False, par_number=parallel_number)
+    n = merge_par_results(n=n, method=method, file_path="saved_results/single_input_mult_circ/200Steps_sep/")
     display_results(n=n, method=method, save_plots=True)
 
     toc = time.perf_counter()
