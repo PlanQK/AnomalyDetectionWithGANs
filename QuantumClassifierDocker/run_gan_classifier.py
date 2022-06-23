@@ -19,7 +19,7 @@ DEFAULT_ENV_VARIABLES = {
     "train_or_predict": "train",
     "data_filepath": "",
     "test_one_sample": "",
-    "training_steps": 100,
+    "training_steps": 200,
     "quantum_circuit_type": "FakeNewsCustom",
     "quantum_depth": 3,
     "batch_size": 64,
