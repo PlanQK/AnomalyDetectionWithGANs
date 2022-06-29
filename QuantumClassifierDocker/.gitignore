@@ -7,3 +7,4 @@ model*/**
 .vscode/launch.json
 
 input_text/**
+text_data/**

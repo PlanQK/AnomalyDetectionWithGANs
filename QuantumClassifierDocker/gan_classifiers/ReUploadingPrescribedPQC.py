@@ -67,30 +67,9 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
         self.varCircuit = cq.Circuit()
         self.varCircuit.append(generationFunction)
 
-        if (False):
-            executor = cirq_rigetti.circuit_sweep_executors.with_quilc_parametric_compilation
-            qc = get_qc(
-                f'{self.numQubits}q-qvm',
-                as_qvm=True,
-                noisy=True,
-                compiler_timeout=100000)
-            sampler = cirq_rigetti.RigettiQCSSampler(
-                quantum_computer=qc,
-                executor=executor)
-
-        #        self.computationLayer = tfq.layers.ControlledPQC( self.varCircuit,
-        #                                                self.observable,
-        #                                                backend=sampler,
-        #                                                repetitions=1000)
-
         self.computationLayer = tfq.layers.ControlledPQC(self.varCircuit,
                                                          self.observable)
         self.x = tfq.layers.Expectation()
-
-        # print(self.varCircuit)
-
-        # output = self.computationLayer([inputcircuit_den_wir_nicht_brauche_also_leer, duplizierte_numerische_wert])
-        # => self.abstractLayer(nicht_dupliziert_numerische_werte)
 
     def generateCircuitForGAN(self):
 

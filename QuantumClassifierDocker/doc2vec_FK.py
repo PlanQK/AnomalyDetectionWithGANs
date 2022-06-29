@@ -7,7 +7,7 @@ from gensim.models import doc2vec
 from word2vec_FK import create_word2vec, save_embeddings_in_file
 
 
-def get_value_range(cat2embeddings):
+def get_value_range(cat2embeddings: dict):
     """Print the minimum and maximum value of the given embeddings
 
     Args:
@@ -25,7 +25,7 @@ def get_value_range(cat2embeddings):
     print("max_val", max_val)
 
 
-def normalize_embeddings(cat2sent_embds):
+def normalize_embeddings(cat2sent_embds: dict):
     """Normalize given embeddings to a value range of [0, 1]
 
     Args:
@@ -41,7 +41,7 @@ def normalize_embeddings(cat2sent_embds):
     return normed
 
 
-def main(dims, dm_or_dbow, liar=True, buzzfeed=False, amtAndCeleb=False, path2save="input_text/"):
+def main(dims: int, dm_or_dbow:str, liar=True, buzzfeed=False, amtAndCeleb=False, path2save="input_text/"):
     """Create a Doc2Vec neural model based on `gensim` and the following article: http://arxiv.org/abs/1405.4053v2. The training material for the model are all news of the parameter-specified data sets.
     Infer the news of all parameter-specified data sets and save them in a json file.
 

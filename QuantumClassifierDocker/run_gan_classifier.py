@@ -55,7 +55,15 @@ logger.addHandler(fh)
 
 warnings.filterwarnings("error")
 
-def main(sim_train_or_predict, sim_method): # FK: change
+def main(sim_train_or_predict: str, sim_method: str):
+    """Run either a training or prediction in classical or quantum context.
+    Not the parameters train_or_predict and method as defined in the environment variables are chosen, but the method parameters instead.
+    This allows for two calls of train and predict without hardcode changes.
+
+    Args:
+        sim_train_or_predict (str): "train" or "predict"
+        sim_method (str): "classical" or "quantum"
+    """
     try:
         # Create Singleton object for the first time with the env variables and perform checks
         envMgr = EnvironmentVariableManager(DEFAULT_ENV_VARIABLES)
@@ -70,16 +78,16 @@ def main(sim_train_or_predict, sim_method): # FK: change
         # Train or evaluate the classifier
         classifier = gan_backends[sim_method]["networks"](data_obj)
         trainer = gan_backends[sim_method]["trainer"](data_obj, classifier) # envMgr["method"]
-        print("The following models will be used:")
+        # print("The following models will be used:")
         # classifier.print_model_summaries()
 
-        if sim_train_or_predict == "train": # FK: change
+        if sim_train_or_predict == "train":
             train_history = trainer.train()
             plotter = gan_backends[sim_method]["plotter"](train_history, pix_num_one_side=3)
             # plotter.plot()
             output_to_json(train_history, fp="model/train_history/train_history.json")
             return train_history
-        elif sim_train_or_predict == "predict": # FK: change
+        elif sim_train_or_predict == "predict":
             classifier.loadClassifier()
             results = trainer.calculateMetrics(validation_or_test="test")
             print(results)

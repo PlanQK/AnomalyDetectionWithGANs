@@ -23,13 +23,20 @@ class News():
     """Class to represent one news with the category, the news itself as a list of words, and the file path in which the news is located
     """
     
-    def __init__(self, category, words, file_path):
+    def __init__(self, category: str, words: list, file_path: str):
+        """Initialize one object of the News class
+
+        Args:
+            category (str): e.g. false or true
+            words (list): all words of one news
+            file_path (str): the path where the news is located
+        """
         self.category = category
         self.words = words
         self.file_path = file_path
 
 
-def get_value_range(word2occ, word2emb):
+def get_value_range(word2occ: dict, word2emb: dict):
     """Print the minimum and maximum value of the given embeddings
 
     Args:
@@ -46,7 +53,7 @@ def get_value_range(word2occ, word2emb):
     print("max_val", max_val)
 
 
-def normalize_data(word2emb):
+def normalize_data(word2emb: dict):
     """Normalize given embeddings to a value range of [0, 1]
 
     Args:
@@ -58,7 +65,7 @@ def normalize_data(word2emb):
     return {w:( (data-np.min(data)) / (np.max(data)-np.min(data)) ) for w, data in word2emb.items()}
 
 
-def norm_text(text):
+def norm_text(text: list):
     """Normalize given text.
     Currently not implemented
 
@@ -73,7 +80,7 @@ def norm_text(text):
     return text
 
 
-def analyze_dataset(dataset_name, current_cat2news, current_word2occ, plot=False):
+def analyze_dataset(dataset_name: str, current_cat2news: dict, current_word2occ: dict, plot=False):
     """Provide some meta information about a dataset.
     Print amount of data points and the distributions of true and false news.
     Also plot these distributions
@@ -109,14 +116,14 @@ def analyze_dataset(dataset_name, current_cat2news, current_word2occ, plot=False
         plt.clf()
 
 
-def add_words_to_word2occ(word2occ, new_text):
+def add_words_to_word2occ(word2occ: dict, new_text: str):
     for i in [w for w in word_tokenize(new_text) if w != ' ']:
         if not i.lower() in word2occ.keys():
             word2occ[i.lower()] = 0
         word2occ[i.lower()] += 1
     return word2occ
 
-def add_news_to_cat2news(cat2news, cat, new_news, file_path):
+def add_news_to_cat2news(cat2news: dict, cat: str, new_news: str, file_path: str):
     if not cat in cat2news.keys():
         cat2news[cat] = []
 
@@ -124,7 +131,7 @@ def add_news_to_cat2news(cat2news, cat, new_news, file_path):
 
     return cat2news
 
-def _word2vec4Liar(cat2news, word2occ):
+def _word2vec4Liar(cat2news: dict, word2occ: dict, prefix="text_data/liar_dataset/"):
     """Add the news and words of the liar dataset to the two given dict structures
 
     Args:
@@ -136,7 +143,7 @@ def _word2vec4Liar(cat2news, word2occ):
     """
     current_cat2news = dict()
     current_word2occ = dict()
-    for f in ["input_text/liar_dataset/train.tsv", "input_text/liar_dataset/valid.tsv", "input_text/liar_dataset/test.tsv"]:
+    for f in [prefix + "train.tsv", prefix + "valid.tsv", prefix + "test.tsv"]:
         with open(f, 'r', encoding="utf-8") as train_fd:
             for line in train_fd.readlines():
                 _, news_class, news, *_ = line.strip('\n').split('\t')
@@ -158,7 +165,7 @@ def _word2vec4Liar(cat2news, word2occ):
     
     return cat2news, word2occ
 
-def _word2vec4Buzzfeed(cat2news, word2occ):
+def _word2vec4Buzzfeed(cat2news: dict, word2occ: dict):
     """Add the news and words of the buzzfeed dataset to the two given dict structures
 
     Args:
@@ -201,7 +208,7 @@ def _word2vec4Buzzfeed(cat2news, word2occ):
     
     return cat2news, word2occ
 
-def _word2vec4AMTandCeleb(cat2news, word2occ):
+def _word2vec4AMTandCeleb(cat2news: dict, word2occ: dict):
     """Add the news and words of the AmtCeleb dataset to the two given dict structures
 
     Args:
@@ -236,12 +243,13 @@ def _word2vec4AMTandCeleb(cat2news, word2occ):
     return cat2news, word2occ
 
 
-def create_word2vec(cat2news, word2occ, liar_dataset, buzzfeed_dataset, amtAndCelebrity):
+def create_word2vec(cat2news: dict, word2occ: dict, liar_dataset: bool, buzzfeed_dataset: bool, amtAndCelebrity: bool):
     """Create a gensim Word2Vec model
 
     Args:
         cat2news (dict): the news are saved corresponding to their category [true, false]
         word2occ (dict): the words with their amount of occurences are saved in here
+        liar_dataset (bool), buzzfeed_dataset (bool), amtAndCelebrity (bool): define which datasets are to be used in the word2vec
 
     Returns:
         Word2Vec, dict, dict: the created gensim model, cat2news, word2occ
@@ -267,7 +275,7 @@ def create_word2vec(cat2news, word2occ, liar_dataset, buzzfeed_dataset, amtAndCe
     return model, cat2news, word2occ
 
 
-def save_embeddings_in_file(cat2embeddings, filepath2save="input_text/liar_and_buzzfeed.csv", used_percentage_of_dataset=1.0):
+def save_embeddings_in_file(cat2embeddings: dict, filepath2save="input_text/liar_and_buzzfeed.csv", used_percentage_of_dataset=1.0):
     """Save the embeddings to a given file path in the following format:
     V1,V2,...,Vx,Class
     ...

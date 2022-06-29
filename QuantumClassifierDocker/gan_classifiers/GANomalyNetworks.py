@@ -13,7 +13,8 @@ import tensorflow_quantum as tfq
 from gan_classifiers.EnvironmentVariableManager import EnvironmentVariableManager
 from gan_classifiers.QuantumCircuits import CompleteRotationCircuitIdentity, CompleteRotationCircuitRandom, \
     StandardCircuit, StrongEntanglementIdentity, StrongEntanglementRandom, LittleEntanglementIdentity, \
-    LittleEntanglementRandom, SemiClassicalIdentity, SemiClassicalRandom, ReUploadingPrescribedPQC
+    LittleEntanglementRandom, SemiClassicalIdentity, SemiClassicalRandom
+from gan_classifiers.ReUploadingPrescribedPQC import ReUploadingPrescribedPQC
 
 logger = logging.getLogger(__name__ + ".py") 
 
@@ -222,9 +223,6 @@ class ClassicalDenseNetworks(Classifier):
             model = tf.keras.layers.Dense(size)(model)
             model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
 
-        # FK: currently not working. Seems like an error with compatibility of keras and tensorflow. Not sure, though, cause it works for quantum
-        # tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True)
-
         return tf.keras.Model(decInput, model, name="Decoder")
 
     def decoder_training_step(self, encoded_data, training=True):
@@ -377,7 +375,7 @@ class QuantumDecoderNetworks(Classifier):
         """
 
         all_models = []
-        for i in range(self.amount_circuits):
+        for _ in range(self.amount_circuits):
         
             tf_dummy_input = tf.keras.Input(shape=(), dtype=tf.string, name="circuit_input")
 
@@ -417,28 +415,13 @@ class QuantumDecoderNetworks(Classifier):
             self.quantum_weights = qc_instance.inputParams.tolist() + qc_instance.controlParams.tolist()
             circuit = qc_instance.buildCircuit()
 
-            # print(circuit)
-
             # readout
             readout = qc_instance.getReadOut()
             self.quantum_circuit = circuit + readout
 
-            # print(self.quantum_circuit)
-
             # build main quantum circuit
             tf_main_circuit = tfq.layers.PQC(circuit, readout, repetitions=int(self.repetitions),
                                                 differentiator=tfq.differentiators.ForwardDifference())(tf_dummy_input)
-
-            # upscaling layer
-            # size_firstDenseLayer = min(self.num_features, int(self.latent_dim * 2))
-            # upscaling_layer = tf.keras.layers.Dense(size_firstDenseLayer)(tf_main_circuit)
-            # upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
-
-            # for size in [int(s) for s in np.linspace(size_firstDenseLayer, self.num_features, num=sim_amount_layers)]:
-            #     if size == size_firstDenseLayer:
-            #         continue
-            #     upscaling_layer = tf.keras.layers.Dense(size)(upscaling_layer)
-            #     upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
 
             model = tf.keras.Model(tf_dummy_input, tf_main_circuit, name="Decoder")
             all_models.append(model)

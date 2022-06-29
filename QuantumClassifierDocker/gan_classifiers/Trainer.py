@@ -107,9 +107,8 @@ class Trainer:
                 for key, value in metrics.items():
                     self.train_hist[key].append(value)
                 self.train_hist["step_number"].append(self.step_counter)
-                # FK: plotting L_adv, L_con and L_enc as well just for information. Remove if not wanted
                 print(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Adversarial loss: {self.adv_loss}, Contextual loss: {self.con_loss}, Encoder loss: {self.enc_loss}, Discriminator loss: {self.d_loss}")
-                self.train_hist["MCC"][len(self.train_hist["MCC"])-1] = float(str(self.train_hist["MCC"][-1]).replace(" (nan error)", '')) # FK: remove the (nan error) string from the MCC if it is present
+                self.train_hist["MCC"][len(self.train_hist["MCC"])-1] = float(str(self.train_hist["MCC"][-1]).replace(" (nan error)", ''))
         toc = time.perf_counter()
 
         self.train_hist["total_runtime"] = toc - tic
@@ -288,10 +287,6 @@ class Trainer:
             x_normal, training=False
         )
         x_hat_normal = self.Classifier.decoder_training_step(z_normal, training=False)
-        # z_quantum_normal = self.transform_z_to_z_quantum(z_normal)
-        # x_hat_normal = self.Classifier.auto_decoder(
-        #     z_quantum_normal, training=False
-        # )
         z_hat_normal = self.Classifier.encoder(
             x_hat_normal, training=False
         )
@@ -302,10 +297,6 @@ class Trainer:
             x_unnormal, training=False
         )
         x_hat_unnormal = self.Classifier.decoder_training_step(z_unnormal, training=False)
-        # z_quantum_unnormal = self.transform_z_to_z_quantum(z_unnormal)            
-        # x_hat_unnormal = self.Classifier.auto_decoder(
-        #     z_quantum_unnormal, training=False
-        # )
         z_hat_unnormal = self.Classifier.encoder(
             x_hat_unnormal, training=False
         )
@@ -329,7 +320,7 @@ class Trainer:
             if self.quantum:
                 # Save weights of quantum layer ([1] as [0] is the input_layer)
                 [self.train_hist["quantum_weights"].append(x.layers[1].get_weights()[0]) for x in self.Classifier.auto_decoder]
-            tmp_res = float(str(res["MCC"]).replace(" (nan error)", '')) # FK: needed for nan error, which happens in true_divide by a division with 0
+            tmp_res = float(str(res["MCC"]).replace(" (nan error)", '')) # needed for nan error, which happens in true_divide by a division with 0
             if self.best_mcc < tmp_res:
                 self.best_mcc = tmp_res
                 self.Classifier.save(step=step, MCC=tmp_res, threshold=res["threshold"], overwrite_best=True)
@@ -431,6 +422,14 @@ class QuantumDecoderTrainer(Trainer):
         self.quantum = True
 
     def transform_z_to_z_quantum(self, z):
+        """method not used currently, could probably be removed
+
+        Args:
+            z (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         # return z
         z_np = z.numpy()
         result = []
