@@ -34,12 +34,11 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
     Code from the xAI Use Case
     c Patrick Steinmueller
     """
-    def __init__(self, num_qubits,
-                 name="re-uploading_prescribed_PQC"):
+    def __init__(self, name="re-uploading_prescribed_PQC"):
         super(ReUploadingPrescribedPQC, self).__init__(name=name)
-        self.numQubits = num_qubits
-        self.numFeatures = int(num_qubits * 2)          # input data
-        self.numParameters = int(self.numFeatures * 2)  # trainable parameters
+        self.numQubits = 10
+        self.numFeatures = int(self.numQubits * 2)          # input data
+        self.numParameters = int(self.numFeatures * 2)      # trainable parameters
         self.generateCircuitForGAN()
 
     def initialize(self, generationFunction: Generator[cq.Operation, None, None]) -> None:
@@ -56,7 +55,6 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
                 (shape=(1, self.numParameters), dtype=tf.dtypes.float32),
             trainable=True,
             name="thetas")
-        print("start: ", self.theta_val)
 
         self.qubits = cq.GridQubit.rect(1, self.numQubits)
         self.phis = [sy.symbols('phi_' + str(i)) for i in range(self.numFeatures)]
@@ -92,17 +90,16 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
             for i in range(int(self.numQubits)):
                 yield cq.rx(self.phis[i+j]).on(self.qubits[i])
 
-            # 2nd trainable parameters
             i = int(self.numQubits)
-            for k in range(int(self.numQubits)):
-                yield cq.rx(self.thetas[i+k]).on(self.qubits[k])
-                yield cq.rz(self.thetas[(i*2)+k]).on(self.qubits[k])
-                yield cq.ry(self.thetas[(i*3)+k]).on(self.qubits[k])
+            for c in range(1, 4):
+                # trainable parameters
+                for k in range(int(self.numQubits)):
+                    yield cq.rx(self.thetas[(i*c)+k]).on(self.qubits[k])
 
-            # 2nd entanglement set
-            for l in range(0, int(self.numQubits) - 1):
-                for m in range(l + 1, int(self.numQubits)):
-                    yield cq.CNOT(self.qubits[l], self.qubits[m])
+                # entanglement set
+                for l in range(0, int(self.numQubits) - 1):
+                    for m in range(l + 1, int(self.numQubits)):
+                        yield cq.CNOT(self.qubits[l], self.qubits[m])
 
         self.initialize(makeCircuit())
 
@@ -125,14 +122,14 @@ class ReUploadingPrescribedPQC(tf.keras.layers.Layer):
 
         # we always need to specify an circuit object, that preprocesses the |0>
         # state. If we don't want that, we input an empty circuit
-        tiled_up_circuits = tf.repeat(tfq.convert_to_tensor([cq.Circuit()]),
-                                      repeats=batch_dim)
-        tiled_up_theta_vals = tf.tile(self.theta_val, multiples=[batch_dim, 1])
+        tiled_up_circuits = tf.repeat(tfq.convert_to_tensor([cq.Circuit()]), repeats=batch_dim)
+
+        tiled_up_theta_vals = tf.cast(tf.tile(self.theta_val, multiples=[batch_dim, 1]), dtype=tf.float32)
         # print(tiled_up_theta_vals)
         tiled_up_input_vals = tf.tile(inputs[0], multiples=[1, 1])
         # print(tiled_up_input_vals)
 
-        joined_vars = tf.concat([tiled_up_input_vals, tiled_up_theta_vals], axis=1)
+        joined_vars = tf.concat([tf.cast(tiled_up_input_vals, dtype=tf.float32), tf.cast(tiled_up_theta_vals, dtype=tf.float32)], axis=1)
         # print(joined_vars)
         joined_vars = tf.gather(joined_vars, self.indices, axis=1)
 
@@ -164,7 +161,7 @@ if __name__ == "__main__":
 
     model.compile(optimizer=optimizer, loss=loss)
 
-    result = model(tf.constant([[i for i in range(20)]], dtype=tf.float32))
+    result = model(tf.constant([[i for i in range(20)]], dtype=tf.types.float32))
 
     print(result)
 

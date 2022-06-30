@@ -423,6 +423,7 @@ class QuantumDecoderTrainer(Trainer):
 
     def transform_z_to_z_quantum(self, z):
         """method not used currently, could probably be removed
+        if not removed: !!! magic number 10 is included
 
         Args:
             z (_type_): _description_
@@ -437,7 +438,7 @@ class QuantumDecoderTrainer(Trainer):
             circuit = cirq.Circuit()
             transformed_inputs = 2 * np.arcsin(z_np[i])
             for j in range(int(self.latent_dim)):
-                circuit.append(cirq.rx(transformed_inputs[j]).on(self.Classifier.qubits[j%10])) # TODO remove the magic number
+                circuit.append(cirq.rx(transformed_inputs[j]).on(self.Classifier.qubits[j%10]))
             result.append(circuit)
         result = tfq.convert_to_tensor(result)
         stop = "stop"

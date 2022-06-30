@@ -64,6 +64,8 @@ def test_n_times(n: int, gen_dim=10, method="classical", calc_embeddings=True, s
             for k, v in res.items():
                 if isinstance(v, list):
                     tmp[k] = int(v[0])
+                elif "nan" in str(v):
+                    tmp[k] = 0
                 else:
                     tmp[k] = float(v)
             new_results[meth].append(tmp)
@@ -145,7 +147,7 @@ if __name__ == "__main__":
     method = "both"
 
     test_n_times(n=n, method=method, calc_embeddings=False, par_number=parallel_number)
-    n = merge_par_results(n=n, method=method, file_path="saved_results/multi_input_qubits/200steps/")
+    # n = merge_par_results(n=n, method=method, file_path="saved_results/multi_input_qubits/200steps/")
 
     toc = time.perf_counter()
     print("Total runtime in seconds: ", toc-tic)
