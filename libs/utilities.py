@@ -4,23 +4,26 @@
 import json
 import numpy as np
 
-def export_to_json(data, fp = ""):
-    """Outputs data to json file """
-    class NpEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, np.integer):
-                return int(obj)
-            if isinstance(obj, np.floating):
-                return float(obj)
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            return super(NpEncoder, self).default(obj)
 
-    if fp:
-        foo = open(fp, "w")
-    else:
-        # set default file path as backfall case
-        foo = open(f"model/data.json", "w")
-    json.dump({**data}, foo, cls=NpEncoder)
-    foo.close()
-    return None
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+
+def reformat_for_json(data):
+    """Outputs data to json file """
+    # create a json compatible dictionary
+    return json.loads(json.dumps({**data}, cls=NpEncoder))
+
+
+def export_to_json(data, fp=None):
+    if not fp:
+        fp = "model/data.json"
+    with open(fp, "w") as foo:
+        json.dump(data, foo, cls=NpEncoder)
