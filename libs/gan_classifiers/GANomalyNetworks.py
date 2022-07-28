@@ -9,11 +9,20 @@ import numpy
 import tensorflow as tf
 import tensorflow_quantum as tfq
 
-from libs.gan_classifiers.QuantumCircuits import CompleteRotationCircuitIdentity, CompleteRotationCircuitRandom, \
-    StandardCircuit, StrongEntanglementIdentity, StrongEntanglementRandom, LittleEntanglementIdentity, \
-    LittleEntanglementRandom, SemiClassicalIdentity, SemiClassicalRandom
+from libs.gan_classifiers.QuantumCircuits import (
+    CompleteRotationCircuitIdentity,
+    CompleteRotationCircuitRandom,
+    StandardCircuit,
+    StrongEntanglementIdentity,
+    StrongEntanglementRandom,
+    LittleEntanglementIdentity,
+    LittleEntanglementRandom,
+    SemiClassicalIdentity,
+    SemiClassicalRandom,
+)
 
-logger = logging.getLogger(__name__ + ".py") 
+logger = logging.getLogger(__name__ + ".py")
+
 
 class Classifier:
     """Base class for the different Gan Classifiers.
@@ -21,9 +30,9 @@ class Classifier:
     Ideally, only the getEncoder, getDecoder, getDiscriminator and getGANomaly methods need to be
     specified to obtain a new classifier.
     """
+
     def __init__(self, data, parameters):
-        """Instantiate all required models for the GANomalyNetwork.
-        """
+        """Instantiate all required models for the GANomalyNetwork."""
         tf.keras.backend.set_floatx("float64")
         self.num_features = data.feature_length
         self.latent_dim = int(parameters["latent_dimensions"])
@@ -97,7 +106,8 @@ class Classifier:
                 f"model/checkpoint/{self.__class__.__name__}_discriminator_weights"
             )
             with open(
-                f"model/checkpoint/{self.__class__.__name__}_other_parameters", "w"
+                f"model/checkpoint/{self.__class__.__name__}_other_parameters",
+                "w",
             ) as json_file:
                 json.dump(data, json_file)
 
@@ -131,7 +141,9 @@ class Classifier:
     def loadClassifier(self):
         """Load a previously trained classifier from files."""
         data = {}
-        with open(f"model/checkpoint/{self.__class__.__name__}_other_parameters") as json_file:
+        with open(
+            f"model/checkpoint/{self.__class__.__name__}_other_parameters"
+        ) as json_file:
             data = json.load(json_file)
         self.latent_dim = data["latent_dim"]
         self.threshold = data["threshold"]
@@ -151,20 +163,27 @@ class Classifier:
 
     def load(self, data):
         """Load a previously trained classifier"""
-        weights_auto_encoder = [numpy.array(w) for w in data["auto_encoder_weights"]]
+        weights_auto_encoder = [
+            numpy.array(w) for w in data["auto_encoder_weights"]
+        ]
         self.auto_encoder.set_weights(weights_auto_encoder)
 
-        weights_auto_decoder = [numpy.array(w) for w in data["auto_decoder_weights"]]
+        weights_auto_decoder = [
+            numpy.array(w) for w in data["auto_decoder_weights"]
+        ]
         self.auto_decoder.set_weights(weights_auto_decoder)
 
-        weights_encoder =  [numpy.array(w) for w in data["encoder_weights"]]   
+        weights_encoder = [numpy.array(w) for w in data["encoder_weights"]]
         self.encoder.set_weights(weights_encoder)
 
-        weights_discriminator = [numpy.array(w) for w in data["discriminator_weights"]]
+        weights_discriminator = [
+            numpy.array(w) for w in data["discriminator_weights"]
+        ]
         self.discriminator.set_weights(weights_discriminator)
 
         self.threshold = data["threshold"]
-        return None 
+        return None
+
 
 class ClassicalDenseNetworks(Classifier):
     """
@@ -172,8 +191,7 @@ class ClassicalDenseNetworks(Classifier):
     """
 
     def __init__(self, data, parameters):
-        """Instantiate all required models for the GANomalyNetwork.
-        """
+        """Instantiate all required models for the GANomalyNetwork."""
         super().__init__(data=data, parameters=parameters)
         self.auto_encoder = self.getEncoder()
         self.auto_decoder = self.getDecoder()
@@ -189,10 +207,14 @@ class ClassicalDenseNetworks(Classifier):
         )
         model = tf.keras.layers.Dense(self.num_features)(discInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
+        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(
+            model
+        )
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.Dense(1, activation="sigmoid")(model)
+        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(
+            model
+        )
+        model = tf.keras.layers.Dense(1)(model)
         return tf.keras.Model(discInput, model, name="Discriminator")
 
     def getEncoder(self):
@@ -204,9 +226,13 @@ class ClassicalDenseNetworks(Classifier):
         )
         model = tf.keras.layers.Dense(self.num_features)(encInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 2)))(model)
+        model = tf.keras.layers.Dense(
+            max(self.latent_dim, int(self.num_features / 2))
+        )(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 4)))(model)
+        model = tf.keras.layers.Dense(
+            max(self.latent_dim, int(self.num_features / 4))
+        )(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(self.latent_dim)(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
@@ -221,13 +247,18 @@ class ClassicalDenseNetworks(Classifier):
         )
         model = tf.keras.layers.Dense(self.latent_dim)(decInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 2)))(model)
+        model = tf.keras.layers.Dense(
+            min(self.num_features, int(self.latent_dim * 2))
+        )(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 4)))(model)
+        model = tf.keras.layers.Dense(
+            min(self.num_features, int(self.latent_dim * 4))
+        )(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(self.num_features)(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         return tf.keras.Model(decInput, model, name="Decoder")
+
 
 class QuantumDecoderNetworks(Classifier):
     """
@@ -235,8 +266,7 @@ class QuantumDecoderNetworks(Classifier):
     """
 
     def __init__(self, data, parameters):
-        """Instantiate all required models for the GANomalyNetwork.
-        """
+        """Instantiate all required models for the GANomalyNetwork."""
         super().__init__(data=data, parameters=parameters)
         self.repetitions = parameters["shots"]
         self.qubits = cirq.GridQubit.rect(1, self.latent_dim)
@@ -249,7 +279,6 @@ class QuantumDecoderNetworks(Classifier):
         self.encoder = self.getEncoder()
         self.discriminator = self.getDiscriminator()
 
-
     def getDiscriminator(self):
         """
         Return the tensorflow model of the Discriminator.
@@ -259,10 +288,14 @@ class QuantumDecoderNetworks(Classifier):
         )
         model = tf.keras.layers.Dense(self.num_features)(discInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
+        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(
+            model
+        )
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(model)
-        model = tf.keras.layers.Dense(1, activation="sigmoid")(model)
+        model = tf.keras.layers.Dense(max(1, int(self.num_features / 2)))(
+            model
+        )
+        model = tf.keras.layers.Dense(1)(model)
         return tf.keras.Model(discInput, model, name="Discriminator")
 
     def getEncoder(self):
@@ -274,41 +307,66 @@ class QuantumDecoderNetworks(Classifier):
         )
         model = tf.keras.layers.Dense(self.num_features)(encInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 2)))(model)
+        model = tf.keras.layers.Dense(
+            max(self.latent_dim, int(self.num_features / 2))
+        )(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        model = tf.keras.layers.Dense(max(self.latent_dim, int(self.num_features / 4)))(model)
+        model = tf.keras.layers.Dense(
+            max(self.latent_dim, int(self.num_features / 4))
+        )(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         # sigmoid necessary to map model output to [0, 1] (as quantum-decoder maps that to [0, \pi])
-        model = tf.keras.layers.Dense(self.latent_dim, activation="sigmoid")(model)
+        model = tf.keras.layers.Dense(self.latent_dim, activation="sigmoid")(
+            model
+        )
         return tf.keras.Model(encInput, model, name="Encoder")
 
     def getDecoder(self):
         """
         Return the tensorflow model of the Decoder.
         """
-        
-        tf_dummy_input = tf.keras.Input(shape=(), dtype=tf.string, name="circuit_input")
+
+        tf_dummy_input = tf.keras.Input(
+            shape=(), dtype=tf.string, name="circuit_input"
+        )
 
         if self.quantum_circuit_type == "standard":
             qc_instance = StandardCircuit(self.qubits)
         elif self.quantum_circuit_type == "CompleteRotationCircuitIdentity":
-            qc_instance = CompleteRotationCircuitIdentity(self.qubits, self.totalNumCycles)
+            qc_instance = CompleteRotationCircuitIdentity(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "CompleteRotationCircuitRandom":
-            qc_instance = CompleteRotationCircuitRandom(self.qubits, self.totalNumCycles)
+            qc_instance = CompleteRotationCircuitRandom(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "StrongEntanglementIdentity":
-            qc_instance = StrongEntanglementIdentity(self.qubits, self.totalNumCycles)
+            qc_instance = StrongEntanglementIdentity(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "StrongEntanglementRandom":
-            qc_instance = StrongEntanglementRandom(self.qubits, self.totalNumCycles)
+            qc_instance = StrongEntanglementRandom(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "LittleEntanglementIdentity":
-            qc_instance = LittleEntanglementIdentity(self.qubits, self.totalNumCycles)
+            qc_instance = LittleEntanglementIdentity(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "LittleEntanglementRandom":
-            qc_instance = LittleEntanglementRandom(self.qubits, self.totalNumCycles)
+            qc_instance = LittleEntanglementRandom(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "SemiClassicalIdentity":
-            qc_instance = SemiClassicalIdentity(self.qubits, self.totalNumCycles)
+            qc_instance = SemiClassicalIdentity(
+                self.qubits, self.totalNumCycles
+            )
         elif self.quantum_circuit_type == "SemiClassicalRandom":
             qc_instance = SemiClassicalRandom(self.qubits, self.totalNumCycles)
 
-        self.quantum_weights = qc_instance.inputParams.tolist() + qc_instance.controlParams.tolist()
+        self.quantum_weights = (
+            qc_instance.inputParams.tolist()
+            + qc_instance.controlParams.tolist()
+        )
         circuit = qc_instance.buildCircuit()
 
         # readout
@@ -316,16 +374,32 @@ class QuantumDecoderNetworks(Classifier):
         self.quantum_circuit = circuit + readout
 
         # build main quantum circuit
-        tf_main_circuit = tfq.layers.PQC(circuit, readout, repetitions=int(self.repetitions),
-                                         differentiator=tfq.differentiators.ForwardDifference())(tf_dummy_input)
+        tf_main_circuit = tfq.layers.PQC(
+            circuit,
+            readout,
+            repetitions=int(self.repetitions),
+            differentiator=tfq.differentiators.ForwardDifference(),
+        )(tf_dummy_input)
 
         # upscaling layer
-        upscaling_layer = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 2)))(tf_main_circuit)
-        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
-        upscaling_layer = tf.keras.layers.Dense(min(self.num_features, int(self.latent_dim * 4)))(upscaling_layer)
-        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
-        upscaling_layer = tf.keras.layers.Dense(self.num_features)(upscaling_layer)
-        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(upscaling_layer)
+        upscaling_layer = tf.keras.layers.Dense(
+            min(self.num_features, int(self.latent_dim * 2))
+        )(tf_main_circuit)
+        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(
+            upscaling_layer
+        )
+        upscaling_layer = tf.keras.layers.Dense(
+            min(self.num_features, int(self.latent_dim * 4))
+        )(upscaling_layer)
+        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(
+            upscaling_layer
+        )
+        upscaling_layer = tf.keras.layers.Dense(self.num_features)(
+            upscaling_layer
+        )
+        upscaling_layer = tf.keras.layers.LeakyReLU(alpha=0.05)(
+            upscaling_layer
+        )
 
         model = tf.keras.Model(tf_dummy_input, upscaling_layer, name="Decoder")
 

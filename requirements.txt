@@ -1,8 +1,8 @@
-tensorflow>=2.7.0
-tensorflow-gpu
+protobuf==3.17.3
+tensorflow==2.7.0
 pandas==1.1.5
 scikit-learn==0.24.1
 scikit-opt==0.6.3
 scikit-optimize==0.8.1
-tensorflow-quantum>=0.6.0
+tensorflow-quantum==0.7.0
 tqdm==4.59.0
