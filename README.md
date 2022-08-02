@@ -43,29 +43,54 @@ in the range [0.0, 1.0] plus the true label, signaling a normal sample or an ano
                 0.0
             ],
         ] 
-        "classifier": {}
     }
+```
+In addition to the input-data the json contains information on the parameters used for the run. These are provided within the "params" object of the input-data file.
+
+
+### Parameter description
+
+A sample of the params section is given in the following.
+
+```
+    "params": {
+        "method": "classical",
+        "train_or_predict": "predict",
+        "training_steps": 3,
+        "quantum_circuit_type": "standard",
+        "quantum_depth": 3,
+        "batch_size": 16,
+        "discriminator_iterations": 5,
+        "validation_interval": 1,
+        "validation_samples": 100,
+        "discriminator_training_rate": 0.02,
+        "generator_training_rate": 0.02,
+        "gradient_penalty_weight": 10.0,
+        "shots": 100,
+        "latent_dimensions": 6,
+        "adv_loss_weight": 1,
+        "con_loss_weight": 50,
+        "enc_loss_weight": 1,
+        "trained_model": {...}
+```
+We now describe each of the parameters in more detail.
+
+By specifying the `train_or_predict` flag the corresponding process (`train` or `predict`) will be triggered.
+
+If `train_or_predict` is set to `predict` we need to supply the weights and parameters of the trained model. This is done under the keyword `trained_model`, where we can copy and paste the output of the training run. It is important to keep other parameters consistent to the training run, as these might change the dimensionality of the weights. A sample structure of the trained model is given in the following:
+```
+"params":{
+    ...
+    "trained_model": {
+        "auto_encoder_weights": [[...]],
+        "auto_decoder_weights": [[...]],
+        "encoder_weights": [[...]],
+        "discriminator_weights": [[...]],
+        "threshold": 0.0025526642574161293
+    }
+}
 ```
 
-In the case of a testing data set, the data requires the set of weights and the threshold computed during the training of the classifier. The weights of the auto_encoder, auto_decoder, encoder and discriminator respectively consist of array of matrices, the threshold lies within [0, 1]. These are given within the "classifier" key. 
-Example:
-```
-    "data": {
-        "values": [..]
-        "classifier": {
-            "auto_encder_weights": [..],
-            "auto_decoder_weights": [..],
-            "encoder_weights": [..],
-            "decoder_weights": [..],
-            "threshold": 0.2,
-            "latent_dim": 6
-        }
-    }
-```
-In addition the input-data contains the parameters used for the run. These are provided within the "params" object of the input-data file.
-We provide the description of the parameters as follows.
-### Parameter description
-By specifying the `train_or_predict` flag the corresponding process (`train` or `predict`) will be triggered.
 
 The `method` variable describes the type of the GAN.The supported GANs are:
 ```
@@ -110,6 +135,7 @@ There are further settings to be determined. Below is a list of the required par
     enc_loss_weight: 1 weight of the encoding generator loss
     validation_interval: how often the performance of the GAN is checked against the validation set and the optimal anomaly threshold is determined
     validation_samples: 100 number of validation samples used (e.g. if 100, then 100 normal and 100 unnormal samples will be used)
+    trained_model: The weights and threshold from the output of the training run. For the training run this keyword is not necessary.
 ```
 Some of the parameters change the network size and therefore must have identical values in both the training step and the prediction step. It is thus highly recommended, to keep the parameter set identical between training and prediction.
 

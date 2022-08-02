@@ -15,29 +15,42 @@ import pandas
 from libs.return_objects import Response, ResultResponse, ErrorResponse
 from libs.utilities import reformat_for_json, export_to_json
 
-from libs.gan_classifiers.GANomalyNetworks import ClassicalDenseNetworks, QuantumDecoderNetworks
+from libs.gan_classifiers.GANomalyNetworks import (
+    ClassicalDenseNetworks,
+    QuantumDecoderNetworks,
+)
 from libs.gan_classifiers.Trainer import Trainer, QuantumDecoderTrainer
 from libs.gan_classifiers.DataProcessor import Data
 from libs.gan_classifiers.Plotter import Plotter, QuantumDecoderPlotter
 
 gan_backends = {
-    "classical": {"networks": ClassicalDenseNetworks,
-                  "trainer": Trainer,
-                  "plotter": Plotter, },
-    "quantum": {"networks": QuantumDecoderNetworks,
-                "trainer": QuantumDecoderTrainer,
-                "plotter": QuantumDecoderPlotter, },
+    "classical": {
+        "networks": ClassicalDenseNetworks,
+        "trainer": Trainer,
+        "plotter": Plotter,
+    },
+    "quantum": {
+        "networks": QuantumDecoderNetworks,
+        "trainer": QuantumDecoderTrainer,
+        "plotter": QuantumDecoderPlotter,
+    },
 }
 
 
-def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None) -> Response:
+def run(
+    data: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+) -> Response:
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    fh = logging.FileHandler("log.log", mode='w')
-    fh.setFormatter(logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    fh = logging.FileHandler("log.log", mode="w")
+    fh.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+    )
     logger.addHandler(fh)
     """
     Default entry point of your code. Start coding here!
@@ -54,23 +67,31 @@ def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] 
     response: Response
     try:
         # Process data
-        data_values = Data(pandas.DataFrame(
-            data["values"], dtype="float64"), params)
+        data_values = Data(
+            pandas.DataFrame(data["values"], dtype="float64"), params
+        )
         logger.info("Data loaded successfully.")
 
         # Load parameters and set defaults
-        assert params["method"] in gan_backends.keys(
+        assert (
+            params["method"] in gan_backends.keys()
         ), "No valid method parameter provided."
         assert params["train_or_predict"] in [
-            "train", "predict"], "train_or_predict parameter not train or predict."
+            "train",
+            "predict",
+        ], "train_or_predict parameter not train or predict."
+        if params["train_or_predict"] == "predict":
+            assert "trained_model" in params
         logger.info("Parameters loaded successfully.")
 
         # Train or evaluate the classifier
-        classifier = gan_backends[params["method"]
-                                  ]["networks"](data_values, params)
+        classifier = gan_backends[params["method"]]["networks"](
+            data_values, params
+        )
         trainer = gan_backends[params["method"]]["trainer"](
-            data_values, classifier, params)
-        #print("The following models will be used:")
+            data_values, classifier, params
+        )
+        # print("The following models will be used:")
         # classifier.print_model_summaries()
 
         if params["train_or_predict"] == "train":
@@ -80,7 +101,7 @@ def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] 
             logger.info("Training of the GAN classifier has ended")
             return ResultResponse(result=output)
         elif params["train_or_predict"] == "predict":
-            classifier.load(data["classifier"])
+            classifier.load(params["trained_model"])
             result = trainer.calculateMetrics(validation_or_test="test")
             output = reformat_for_json(result)
             export_to_json(output, "response_test.json")
@@ -88,5 +109,7 @@ def run(data: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] 
             return ResultResponse(result=result)
     except Exception as e:
         logger.error(
-            "An error occured while processing. Error reads:" '\n' + traceback.format_exc())
+            "An error occured while processing. Error reads:"
+            "\n" + traceback.format_exc()
+        )
         return ErrorResponse(code="500", detail=f"{type(e).__name__}: {e}")
