@@ -56,8 +56,9 @@ A sample of the params section is given in the following.
     "params": {
         "method": "classical",
         "train_or_predict": "predict",
+        "is_supervised": true,
         "training_steps": 3,
-        "quantum_circuit_type": "standard",
+        "quantum_circuit_type": "StandardCircuit",
         "quantum_depth": 3,
         "batch_size": 16,
         "discriminator_iterations": 5,
@@ -98,11 +99,14 @@ The `method` variable describes the type of the GAN.The supported GANs are:
     quantum: quantum-classical hybrid Decoder in the AutoEncoder; all other networks stay classical
 ```
 
+The `is_supervised` variable can be either `true` or `false`. It describes if the algorithm is run in a supervised setting. This is useful to obtain more detailed performance metrics but requires labeled data as input. The last feature is assumed to be the class/anomaly information. During the prediction step the `threshold` parameter needs to be supplied as well. To keep the correct dimensionality we recommend not to mix supervised training with unsupervised predictions.
+
+
 If using the quantum `method`, the `quantum_circuit_type` parameter determines the design of the quantum circuit used for the Decoder.
 The following values are possible:
 
 ```
-    standard
+    StandardCircuit
     CompleteRotationCircuitIdentity
     CompleteRotationCircuitRandom
     StrongEntanglementIdentity

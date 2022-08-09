@@ -1,26 +1,20 @@
 import logging
 import time
-import numpy as np
 
-import cirq
 import tensorflow as tf
 from tqdm import tqdm
-import tensorflow_quantum as tfq
 
 logger = logging.getLogger()
+
+
 class Trainer:
     """
     Class holding the required methods and attributes to conduct the training or testing procedure.
     """
 
-    def __init__(
-            self,
-            Data,
-            Classifier,
-            parameters
-    ):
+    def __init__(self, data, Classifier, metrics_object, parameters):
         """Initialize necessary parameters to train the model via a Wasserstein-Loss based GANomaly ansatz.
-        
+
         This implementation is supposed to remedy some of the training difficulties of GANs (e.g.
         vanishing gradients).
         Args:
@@ -42,19 +36,28 @@ class Trainer:
         """
         tf.keras.backend.set_floatx("float64")
 
-        self.Data = Data
+        self.data = data
         self.Classifier = Classifier
 
-        self.validation = True if parameters["train_or_predict"] == "train" else False
-        self.opt_disc = tf.keras.optimizers.Adam(beta_1=0.5, learning_rate=float(parameters["discriminator_training_rate"]))
-        self.opt_gen = tf.keras.optimizers.Adam(beta_1=0.5, learning_rate=float(parameters["generator_training_rate"]))
+        self.validation = (
+            True if parameters["train_or_predict"] == "train" else False
+        )
+        self.opt_disc = tf.keras.optimizers.Adam(
+            beta_1=0.5,
+            learning_rate=float(parameters["discriminator_training_rate"]),
+        )
+        self.opt_gen = tf.keras.optimizers.Adam(
+            beta_1=0.5,
+            learning_rate=float(parameters["generator_training_rate"]),
+        )
+
+        self.metrics_object = metrics_object
         self.latent_dim = parameters["latent_dimensions"]
         self.n_steps = parameters["training_steps"]
         self.step_counter = 0
         self.batch_size = parameters["batch_size"]
         self.discriminator_iterations = parameters["discriminator_iterations"]
         self.updateInterval = parameters["validation_interval"]
-        self.validation_samples = int(parameters["validation_samples"])
         self.gradient_penalty_weight = parameters["gradient_penalty_weight"]
         self.adv_loss_weight = parameters["adv_loss_weight"]
         self.con_loss_weight = parameters["con_loss_weight"]
@@ -64,13 +67,7 @@ class Trainer:
         self.con_loss = 0
         self.enc_loss = 0
         self.d_loss = 0
-        self.best_mcc = -1.
-        self.train_hist = {"step_number": [], "total_runtime": 0, "runtime_per_step": 0, "generator_loss": [],
-                           "adversarial_loss": [], "contextual_loss": [], "encoder_loss": [],
-                           "discriminator_loss": [], "TP": [], "FP": [], "TN": [], "FN": [],
-                           "threshold": [], "MCC": [], "x_normal_samples": [], "x_hat_normal_samples": [],
-                           "x_unnormal_samples": [], "x_hat_unnormal_samples": []}
-        self.quantum = False 
+        self.best_mcc = -1.0
 
     def train(self):
         """Run the training procedure. The first validation and logging of losses happens after the validation interval
@@ -82,57 +79,56 @@ class Trainer:
                     parameter snapshots. The parameters are empty in this
                     implementation.
         """
-
-        self.status = "running"
-
         tic = time.perf_counter()
 
         for _ in tqdm(range(int(self.n_steps)), desc=self.__str__()):
             self._step()
             self.step_counter += 1
             if (int(self.step_counter) % int(self.updateInterval)) == 0:
-                metrics = self.calculateMetrics(step=self.step_counter)
-                metrics["generator_loss"] = self.g_loss
-                metrics["discriminator_loss"] = self.d_loss
-                metrics["adversarial_loss"] = self.adv_loss
-                metrics["contextual_loss"] = self.con_loss
-                metrics["encoder_loss"] = self.enc_loss
-                for key, value in metrics.items():
-                    self.train_hist[key].append(value)
-                self.train_hist["step_number"].append(self.step_counter)
-                logger.info(f"\nMCC: {self.train_hist['MCC'][-1]}, Generator loss: {self.g_loss}, Discriminator loss: {self.d_loss}")
-        toc = time.perf_counter()
+                # generic Metric info
+                self.metrics_object.update_key(
+                    "step_number", self.step_counter
+                )
+                toc = time.perf_counter()
+                self.metrics_object.update_key("total_runtime", toc - tic)
+                self.metrics_object.update_key(
+                    "runtime_per_step", (toc - tic) / self.step_counter
+                )
+                self.metrics_object.update_key("generator_loss", self.g_loss)
+                self.metrics_object.update_key(
+                    "adversarial_loss", self.adv_loss
+                )
+                self.metrics_object.update_key(
+                    "contextual_loss", self.con_loss
+                )
+                self.metrics_object.update_key("encoder_loss", self.enc_loss)
+                self.metrics_object.update_key(
+                    "discriminator_loss", self.d_loss
+                )
+                self.metrics_object.metric_during_training(
+                    self.Classifier.predict, self.Classifier.generate
+                )
 
-        self.train_hist["total_runtime"] = toc - tic
-        if self.n_steps != 0:
-            self.train_hist["runtime_per_step"] = (toc - tic) / int(self.n_steps)
-        self.status = "done"
-        return self.train_hist
+                if self.metrics_object.is_best():
+                    self.best_weights = self.Classifier.save()
+                    logger.info("\nModel with new highscore saved!")
+                self.metrics_object.finalize()
+        return self.best_weights
 
     def _step(self):
         """Perform a single step of the optimization.
         This step consists of several updates for the discriminator parameters
         and a single update for the generator parameters.
         """
-        x = self.Data.get_train_data(self.batch_size)
+        x = self.data.get_train_data(self.batch_size)
         for i in range(int(self.discriminator_iterations)):
             with tf.GradientTape(persistent=True) as tape:
-                z = self.Classifier.auto_encoder(
-                    x, training=True
-                )
-                z_quantum = self.transform_z_to_z_quantum(z)
-                x_hat = self.Classifier.auto_decoder(
-                    z_quantum, training=True
-                )
-                z_hat = self.Classifier.encoder(
-                    x_hat, training=True
-                )
-                d = self.Classifier.discriminator(
-                    x, training=True
-                )
-                d_hat = self.Classifier.discriminator(
-                    x_hat, training=True
-                )
+                z = self.Classifier.auto_encoder(x, training=True)
+                z_quantum = self.Classifier.transform_z_to_z_quantum(z)
+                x_hat = self.Classifier.auto_decoder(z_quantum, training=True)
+                z_hat = self.Classifier.encoder(x_hat, training=True)
+                d = self.Classifier.discriminator(x, training=True)
+                d_hat = self.Classifier.discriminator(x_hat, training=True)
 
                 # discriminator losses
                 d_cost = self.discriminatorLoss(d, d_hat)
@@ -141,12 +137,16 @@ class Trainer:
 
                 # generator losses
                 if i == (int(self.discriminator_iterations) - 1):
-                    self.adv_loss, self.con_loss, self.enc_loss = self.generatorLoss(x, x_hat, z, z_hat, d, d_hat)
-                    g_loss = self.adv_loss + self.con_loss + self.enc_loss
+                    (
+                        adv_loss,
+                        con_loss,
+                        enc_loss,
+                    ) = self.generatorLoss(x, x_hat, z, z_hat, d, d_hat)
+                    g_loss = adv_loss + con_loss + enc_loss
                     self.g_loss = float(g_loss)
-                    self.adv_loss = float(self.adv_loss)
-                    self.con_loss = float(self.con_loss)
-                    self.enc_loss = float(self.enc_loss)
+                    self.adv_loss = float(adv_loss)
+                    self.con_loss = float(con_loss)
+                    self.enc_loss = float(enc_loss)
                     self.d_loss = float(d_loss)
 
             # Get the gradients w.r.t the discriminator loss
@@ -155,26 +155,29 @@ class Trainer:
             )
             # Update the weights of the discriminator
             self.opt_disc.apply_gradients(
-                zip(d_gradient, self.Classifier.discriminator.trainable_variables)
+                zip(
+                    d_gradient,
+                    self.Classifier.discriminator.trainable_variables,
+                )
             )
 
             # Update the weights of the generator
             if i == (int(self.discriminator_iterations) - 1):
                 gen_gradient = tape.gradient(
                     g_loss,
-                    self.Classifier.auto_encoder.trainable_variables + self.Classifier.auto_decoder.trainable_variables + self.Classifier.encoder.trainable_variables
+                    self.Classifier.auto_encoder.trainable_variables
+                    + self.Classifier.auto_decoder.trainable_variables
+                    + self.Classifier.encoder.trainable_variables,
                 )
                 self.opt_gen.apply_gradients(
-                    zip(gen_gradient,
-                        self.Classifier.auto_encoder.trainable_variables + self.Classifier.auto_decoder.trainable_variables + self.Classifier.encoder.trainable_variables)
+                    zip(
+                        gen_gradient,
+                        self.Classifier.auto_encoder.trainable_variables
+                        + self.Classifier.auto_decoder.trainable_variables
+                        + self.Classifier.encoder.trainable_variables,
+                    )
                 )
 
-        return None
-
-    def transform_z_to_z_quantum(self, z):
-        # No transformation is done
-        return z
-        
     @staticmethod
     def discriminatorLoss(d, d_hat):
         """Calculate the loss for the discriminator optimization steps.
@@ -251,178 +254,8 @@ class Trainer:
         con_loss = mae(x, x_hat)
         enc_loss = mse(z, z_hat)
 
-        return adv_loss*float(self.adv_loss_weight) , con_loss*float(self.con_loss_weight), enc_loss*float(self.enc_loss_weight)
-
-    def calculateMetrics(self, step=0, validation_or_test="validation"):
-        """Calculate the metrics on the validation dataset.
-
-        Args:
-            opt (tf.keras.optimizer): [unused] Optimizer required for
-                the AnoGan architecture e.g. Adam optimizer.
-
-        Returns:
-            dict: dict containing the results for the different metrics.
-        """
-
-        mae = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)
-        if validation_or_test == "validation":
-            samples = min(self.validation_samples, len(self.Data.validation_data_unnormal))
-            x_normal, x_unnormal = self.Data.get_validation_data(batch_size=int(samples))
-        elif validation_or_test == "test":
-            x_normal, x_unnormal = self.Data.get_test_data()
-
-        # normal error
-        z_normal = self.Classifier.auto_encoder(
-            x_normal, training=False
+        return (
+            adv_loss * float(self.adv_loss_weight),
+            con_loss * float(self.con_loss_weight),
+            enc_loss * float(self.enc_loss_weight),
         )
-        z_quantum_normal = self.transform_z_to_z_quantum(z_normal)
-        x_hat_normal = self.Classifier.auto_decoder(
-            z_quantum_normal, training=False
-        )
-        z_hat_normal = self.Classifier.encoder(
-            x_hat_normal, training=False
-        )
-        enc_loss_normal = mae(z_normal, z_hat_normal)
-
-        # unnormal error
-        z_unnormal = self.Classifier.auto_encoder(
-            x_unnormal, training=False
-        )
-        z_quantum_unnormal = self.transform_z_to_z_quantum(z_unnormal)            
-        x_hat_unnormal = self.Classifier.auto_decoder(
-            z_quantum_unnormal, training=False
-        )
-        z_hat_unnormal = self.Classifier.encoder(
-            x_hat_unnormal, training=False
-        )
-        enc_loss_unnormal = mae(z_unnormal, z_hat_unnormal)
-
-        # get x and x_hat normal and unnormal samples
-        sample_num = 4 if len(x_normal) >= 4 and len(x_unnormal) >= 4 else min(len(x_normal), len(x_unnormal))
-        x_normal_samples = x_normal[:sample_num]
-        x_hat_normal_samples = x_hat_normal.numpy()[:sample_num]
-        x_unnormal_samples = x_unnormal[:sample_num]
-        x_hat_unnormal_samples = x_hat_unnormal.numpy()[:sample_num]
-
-        res = self.optimize_anomaly_threshold_and_get_metrics(enc_loss_normal.numpy(), enc_loss_unnormal.numpy(),
-                                                              validation=self.validation)
-
-        if validation_or_test == "validation":
-            res["x_normal_samples"] = x_normal_samples
-            res["x_hat_normal_samples"] = x_hat_normal_samples
-            res["x_unnormal_samples"] = x_unnormal_samples
-            res["x_hat_unnormal_samples"] = x_hat_unnormal_samples
-            if self.quantum:
-                # Save weights of quantum layer ([1] as [0] is the input_layer)
-                self.train_hist["quantum_weights"].append(self.Classifier.auto_decoder.layers[1].get_weights()[0])
-            if self.best_mcc < res["MCC"]:
-                self.best_mcc = res["MCC"]
-                # Save classifier weights & bias in training result
-                self.train_hist["classifier"] = self.Classifier.save(threshold=res["threshold"], overwrite_best=True)
-                logger.info("\nModel with new highscore saved!")
-        elif validation_or_test == "test":
-            res["TP"] = [res["TP"]]
-            res["FP"] = [res["FP"]]
-            res["TN"] = [res["TN"]]
-            res["FN"] = [res["FN"]]
-
-        return res
-
-    def optimize_anomaly_threshold_and_get_metrics(self, enc_loss_normal, enc_loss_unnormal, validation=True):
-        """
-        Args:
-            enc_loss_normal: np.array of shape (len(enc_loss_normal)) holding the scaled anomaly scores for each sample
-            enc_loss_unnormal: np.array of shape (len(enc_loss_unnormal)) holding the scaled anomaly scores for each sample
-        """
-
-        # enrich scaled anomaly scores with their true labels for each sample
-        prepare_normal = np.dstack((enc_loss_normal, -np.ones_like(enc_loss_normal)))[0]
-        prepare_unnormal = np.dstack((enc_loss_unnormal, np.ones_like(enc_loss_unnormal)))[0]
-        complete_set = np.vstack((prepare_normal, prepare_unnormal)).tolist()
-        sorted_complete_set = sorted(complete_set, key=lambda x:x[0])
-        sorted_true_labels = np.asarray(sorted_complete_set)[:, 1].astype(int).tolist()
-
-        # determine optimal threshold and according index in sorted set of samples
-        if validation:
-            epsilon = 10**(-7)
-            threshold = 0.
-            best_index = 0
-            optimizer_score = -len(sorted_complete_set)
-            sorted_complete_set[0][1] = int(sorted_complete_set[0][1])
-            for i in range(1, len(sorted_complete_set)):
-                sorted_complete_set[i][1] = int(sorted_complete_set[i][1])
-                new_score = np.sum(sorted_complete_set[i:], axis=0)[1] - np.sum(sorted_complete_set[:i+1], axis=0)[1]
-                if optimizer_score < new_score:
-                    threshold = sorted_complete_set[i][0] - epsilon
-                    best_index = i
-                    optimizer_score = new_score
-
-        # during testing, only look for the index of the last sample, whose anomaly score falls below the threshold
-        else:
-            threshold = self.Classifier.threshold
-            best_index = 0
-            for i in range(1, len(sorted_complete_set)):
-                if sorted_complete_set[i][0] > threshold:
-                    continue
-                else:
-                    best_index = i
-
-        # partition samples according to threshold
-        if best_index == 0:
-            labels_below_threshold = sorted_true_labels
-            labels_above_threshold = []
-        elif best_index == len(sorted_true_labels) - 1:
-            labels_below_threshold = []
-            labels_above_threshold = sorted_true_labels
-        else:
-            labels_below_threshold = sorted_true_labels[:best_index+1]
-            labels_above_threshold = sorted_true_labels[best_index+1:]
-        unique, counts = np.unique(labels_below_threshold, return_counts=True)
-        distribution_below_threshold = dict(zip(unique, counts))
-        unique, counts = np.unique(labels_above_threshold, return_counts=True)
-        distribution_above_threshold = dict(zip(unique, counts))
-        distribution_below_threshold.setdefault(-1, 0)
-        distribution_below_threshold.setdefault(1, 0)
-        distribution_above_threshold.setdefault(-1, 0)
-        distribution_above_threshold.setdefault(1, 0)
-
-        # compute result metrics
-        result = {}
-        result["TP"] = distribution_above_threshold[1]
-        result["FP"] = distribution_above_threshold[-1]
-        result["TN"] = distribution_below_threshold[-1]
-        result["FN"] = distribution_below_threshold[1]
-        result["threshold"] = threshold
-        result["MCC"] = (result["TP"] * result["TN"] - result["FP"] * result["FN"]) / (
-                    (result["TP"] + result["FP"]) * (result["TP"] + result["FN"]) * (result["TN"] + result["FP"]) * (
-                        result["TN"] + result["FN"])) ** (1 / 2)
-
-        return result
-
-class QuantumDecoderTrainer(Trainer):
-    """
-    Class holding the required methods and attributes to conduct the training or testing procedure for the quantum method.
-    """
-
-    def __init__(
-            self,
-            Data,
-            Classifier,
-            parameters
-    ):
-        super().__init__(Data=Data, Classifier=Classifier, parameters=parameters)
-        self.train_hist["quantum_weights"] = []
-        self.quantum = True
-
-    def transform_z_to_z_quantum(self, z):
-        z_np = z.numpy()
-        result = []
-        for i in range(len(z_np)):
-            circuit = cirq.Circuit()
-            transformed_inputs = 2 * np.arcsin(z_np[i])
-            for j in range(int(self.latent_dim)):
-                circuit.append(cirq.rx(transformed_inputs[j]).on(self.Classifier.qubits[j]))
-            result.append(circuit)
-        result = tfq.convert_to_tensor(result)
-        stop = "stop"
-        return result

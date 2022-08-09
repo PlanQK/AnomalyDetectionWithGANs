@@ -3,11 +3,13 @@ import math
 import sympy
 import cirq
 
+
 class StandardCircuit:
     """
     Very easy PoC circuit.
     """
-    def __init__(self, qubits):
+
+    def __init__(self, qubits, totalNumCycles=None):
         self.qubits = qubits
         self.num_qubits = len(self.qubits)
         self.circuit = cirq.Circuit()
@@ -19,7 +21,9 @@ class StandardCircuit:
     def buildCircuit(self):
         for i in range(int(self.num_qubits)):
             # create circuit
-            self.circuit.append(cirq.rx(self.inputParams[i]).on(self.qubits[i]))
+            self.circuit.append(
+                cirq.rx(self.inputParams[i]).on(self.qubits[i])
+            )
 
         # 1st entanglement set
         for i in range(0, int(self.num_qubits) - 1):
@@ -31,10 +35,11 @@ class StandardCircuit:
     def getReadOut(self):
         return [cirq.Z(q) for q in self.qubits]
 
+
 class IdentityCircuitBase:
     """Base class for the different Parametrized circuits. Derive this class to
-  write your own specialized circuit.
-  """
+    write your own specialized circuit.
+    """
 
     def __init__(self, qubits, totalNumCycles=3):
         self.qubits = qubits
@@ -57,13 +62,15 @@ class IdentityCircuitBase:
         self.controlParams = np.array(
             [sympy.Symbol(f"w{i}") for i in range(numVariables)]
         )
-        self.controlParams = self.controlParams.reshape(int(totalNumCycles), int(self.num_qubits))
+        self.controlParams = self.controlParams.reshape(
+            int(totalNumCycles), int(self.num_qubits)
+        )
 
     def generateCycle(self):
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
-        
+
     def generateInvCycle(self):
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
@@ -116,7 +123,9 @@ class IdentityCircuitBase:
 
     def generateInitialParameters(self):
         startingParameters = (
-            np.random.random([int(int(self.totalNumCycles) / 2), len(self.qubits)])
+            np.random.random(
+                [int(int(self.totalNumCycles) / 2), len(self.qubits)]
+            )
             * 2
             - 1
         ) * np.pi
@@ -158,11 +167,16 @@ class RandomCircuitBase(IdentityCircuitBase):
     def __init__(self, qubits, totalNumCycles=3):
         super().__init__(qubits, totalNumCycles=totalNumCycles)
 
-        self.controlParams = self.controlParams.reshape(int(totalNumCycles), int(self.num_qubits))
-        self.bases = np.random.choice(
-            [cirq.rx, cirq.ry, cirq.rz], int(totalNumCycles) * int(self.num_qubits)
+        self.controlParams = self.controlParams.reshape(
+            int(totalNumCycles), int(self.num_qubits)
         )
-        self.bases = self.bases.reshape(int(totalNumCycles), int(self.num_qubits))
+        self.bases = np.random.choice(
+            [cirq.rx, cirq.ry, cirq.rz],
+            int(totalNumCycles) * int(self.num_qubits),
+        )
+        self.bases = self.bases.reshape(
+            int(totalNumCycles), int(self.num_qubits)
+        )
 
     def buildCircuit(self):
         # state input
@@ -177,7 +191,11 @@ class RandomCircuitBase(IdentityCircuitBase):
 
     def generateInitialParameters(self):
         return (
-            (np.random.random([int(self.totalNumCycles), len(self.qubits)]) * 2 - 1)
+            (
+                np.random.random([int(self.totalNumCycles), len(self.qubits)])
+                * 2
+                - 1
+            )
             * np.pi
         ).flatten()
 
@@ -186,7 +204,10 @@ class CompleteRotationCircuitIdentity(IdentityCircuitBase):
     def __init__(self, qubits, totalNumCycles=3):
         super().__init__(qubits, totalNumCycles=totalNumCycles)
         self.controlParams = np.array(
-            [sympy.Symbol(f"w{i}") for i in range(3 * int(self.num_qubits) * int(totalNumCycles))]
+            [
+                sympy.Symbol(f"w{i}")
+                for i in range(3 * int(self.num_qubits) * int(totalNumCycles))
+            ]
         )
         self.controlParams = self.controlParams.reshape(
             3 * int(totalNumCycles), int(self.num_qubits)
@@ -299,7 +320,10 @@ class CompleteRotationCircuitRandom(RandomCircuitBase):
     def __init__(self, qubits, totalNumCycles=3):
         super().__init__(qubits, totalNumCycles=totalNumCycles)
         self.controlParams = np.array(
-            [sympy.Symbol(f"w{i}") for i in range(3 * int(self.num_qubits) * int(totalNumCycles))]
+            [
+                sympy.Symbol(f"w{i}")
+                for i in range(3 * int(self.num_qubits) * int(totalNumCycles))
+            ]
         )
         self.controlParams = self.controlParams.reshape(
             3 * int(totalNumCycles), int(self.num_qubits)
@@ -340,7 +364,9 @@ class CompleteRotationCircuitRandom(RandomCircuitBase):
     def generateInitialParameters(self):
         return (
             (
-                np.random.random([int(self.totalNumCycles), 3 * len(self.qubits)])
+                np.random.random(
+                    [int(self.totalNumCycles), 3 * len(self.qubits)]
+                )
                 * 2
                 - 1
             )
@@ -401,9 +427,9 @@ class StrongEntanglementIdentity(IdentityCircuitBase):
         for qubitID in range(len(self.qubits)):
             self.circuit.append(
                 self.bases[len(self.bases) - cyclePos - 1][qubitID](
-                    self.controlParams[int(self.totalNumCycles) - cyclePos - 1][
-                        qubitID
-                    ]
+                    self.controlParams[
+                        int(self.totalNumCycles) - cyclePos - 1
+                    ][qubitID]
                 ).on(self.qubits[qubitID])
             )
 
@@ -493,9 +519,9 @@ class LittleEntanglementIdentity(IdentityCircuitBase):
         for qubitID in range(len(self.qubits)):
             self.circuit.append(
                 self.bases[len(self.bases) - cyclePos - 1][qubitID](
-                    self.controlParams[int(self.totalNumCycles) - cyclePos - 1][
-                        qubitID
-                    ]
+                    self.controlParams[
+                        int(self.totalNumCycles) - cyclePos - 1
+                    ][qubitID]
                 ).on(self.qubits[qubitID])
             )
 
@@ -546,9 +572,9 @@ class SemiClassicalIdentity(IdentityCircuitBase):
         for qubitID in range(len(self.qubits)):
             self.circuit.append(
                 self.bases[len(self.bases) - cyclePos - 1][qubitID](
-                    self.controlParams[int(self.totalNumCycles) - cyclePos - 1][
-                        qubitID
-                    ]
+                    self.controlParams[
+                        int(self.totalNumCycles) - cyclePos - 1
+                    ][qubitID]
                 ).on(self.qubits[qubitID])
             )
 
