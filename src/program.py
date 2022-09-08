@@ -58,22 +58,18 @@ def run(
         passed back to the client
     """
     try:
-        # Process data
+        # Process data & load metrics
         if params["is_supervised"]:
             data_values = SupervisedData(
                 pandas.DataFrame(data["values"], dtype="float64"), params
             )
+            metrics_object = SupervisedMetric(data_values, params)
         else:
             data_values = UnsupervisedData(
                 pandas.DataFrame(data["values"], dtype="float64"), params
             )
-        logger.info("Data loaded successfully.")
-
-        # Load metrics object
-        if params["is_supervised"]:
-            metrics_object = SupervisedMetric(data_values, params)
-        else:
             metrics_object = UnsupervisedMetric(data_values, params)
+        logger.info("Data loaded successfully.")
 
         # Load parameters and set defaults
         assert (

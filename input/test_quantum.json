@@ -1,6 +1,7 @@
 {
     "params": {
         "method": "quantum",
+        "quantum_backend": "IBM - Aer",
         "train_or_predict": "predict",
         "training_steps": 3,
         "is_supervised": false,

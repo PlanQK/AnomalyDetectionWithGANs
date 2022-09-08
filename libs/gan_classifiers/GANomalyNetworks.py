@@ -8,8 +8,11 @@ import cirq
 import numpy
 import tensorflow as tf
 import tensorflow_quantum as tfq
-
 import libs.gan_classifiers.QuantumCircuits as quantumCircuits
+
+# qiskit backend
+from libs.qiskit_device import get_qiskit_sampler, set_debug_circuit_writer
+from qiskit import Aer
 
 
 logger = logging.getLogger(__name__ + ".py")
@@ -74,6 +77,17 @@ class ClassicalDecoder(tf.keras.Model):
 
 
 class QuantumDecoder(tf.keras.Model):
+    backend_mapping = {
+        "noiseless": "noiseless",
+        "IBM - Aer": get_qiskit_sampler(
+            Aer.get_backend("statevector_simulator")
+        ),
+        #
+        # "IBM - Hardware": get_qiskit_sampler(
+        #    backend("Q4", "API KEY")
+        # )
+    }
+
     def __init__(self, num_features, parameters):
         # settings from parameters
         latent_dim = int(parameters["latent_dimensions"])
@@ -100,7 +114,9 @@ class QuantumDecoder(tf.keras.Model):
             circuit,
             readout,
             repetitions=int(repetitions),
+            backend=self.backend_mapping[parameters["quantum_backend"]],
             differentiator=tfq.differentiators.ForwardDifference(),
+            # differentiator=tfq.differentiators.ParameterShift(),
         )(tf_dummy_input)
 
         # upscaling layer
