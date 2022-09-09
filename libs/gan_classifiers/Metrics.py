@@ -127,7 +127,11 @@ class SupervisedMetric(Metric):
             enc_loss_normal.numpy(), enc_loss_unnormal.numpy()
         )
         return self.calculate_metrics(
-            self.data.get_test_data(), prediction_func, None
+            self.data.get_validation_data(
+                batch_size=int(self.validation_samples)
+            ),
+            prediction_func,
+            None,
         )
 
     def calculate_metrics(self, dataset, prediction_func, _):
