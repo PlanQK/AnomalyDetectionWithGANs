@@ -115,8 +115,8 @@ class QuantumDecoder(tf.keras.Model):
             readout,
             repetitions=int(repetitions),
             backend=self.backend_mapping[parameters["quantum_backend"]],
-            differentiator=tfq.differentiators.ForwardDifference(),
-            # differentiator=tfq.differentiators.ParameterShift(),
+            # differentiator=tfq.differentiators.ForwardDifference(),
+            differentiator=tfq.differentiators.ParameterShift(),
         )(tf_dummy_input)
 
         # upscaling layer

@@ -94,9 +94,6 @@ class SupervisedMetric(Metric):
         )[0]
         complete_set = np.vstack((prepare_normal, prepare_unnormal)).tolist()
         sorted_complete_set = sorted(complete_set, key=lambda x: x[0])
-        sorted_true_labels = (
-            np.asarray(sorted_complete_set)[:, 1].astype(int).tolist()
-        )
 
         # determine optimal threshold and according index in sorted set of samples
         epsilon = 10 ** (-7)
@@ -117,28 +114,27 @@ class SupervisedMetric(Metric):
 
     def metric_during_training(self, prediction_func, _):
         """Calculate the metrics during training."""
-        x_normal, x_annomaly = self.data.get_validation_data(
-            batch_size=int(self.validation_samples)
-        )
-        enc_loss_normal = prediction_func(x_normal)
-        enc_loss_unnormal = prediction_func(x_annomaly)
-
-        self.threshold = self.optimize_anomaly_threshold(
-            enc_loss_normal.numpy(), enc_loss_unnormal.numpy()
-        )
         return self.calculate_metrics(
             self.data.get_validation_data(
                 batch_size=int(self.validation_samples)
             ),
             prediction_func,
             None,
+            during_training=True,
         )
 
-    def calculate_metrics(self, dataset, prediction_func, _):
+    def calculate_metrics(
+        self, dataset, prediction_func, _, during_training=False
+    ):
         """Calculate the metrics on the validation dataset."""
         x_normal, x_annomaly = dataset
         enc_loss_normal = prediction_func(x_normal).numpy()
         enc_loss_unnormal = prediction_func(x_annomaly).numpy()
+
+        if during_training:
+            self.threshold = self.optimize_anomaly_threshold(
+                enc_loss_normal.numpy(), enc_loss_unnormal.numpy()
+            )
 
         # compute result metrics
         self.update_key(
