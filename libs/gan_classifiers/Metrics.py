@@ -125,17 +125,17 @@ class SupervisedMetric(Metric):
 
     def calculate_metrics(
         self, dataset, prediction_func, _, during_training=False
-    ):
+        ):
         """Calculate the metrics on the validation dataset."""
         x_normal, x_annomaly = dataset
         enc_loss_normal = prediction_func(x_normal).numpy()
         enc_loss_unnormal = prediction_func(x_annomaly).numpy()
-
+        
         if during_training:
             self.threshold = self.optimize_anomaly_threshold(
-                enc_loss_normal.numpy(), enc_loss_unnormal.numpy()
+                enc_loss_normal, enc_loss_unnormal
             )
-
+        
         # compute result metrics
         self.update_key(
             "TP", np.count_nonzero(enc_loss_unnormal > self.threshold)
