@@ -4,27 +4,51 @@ import sympy
 import cirq
 
 
-class StandardCircuit:
-    """
-    Very easy PoC circuit.
-    """
-
-    def __init__(self, qubits, totalNumCycles=None):
+class RandomCircuitBase:
+    def __init__(self, qubits, totalNumCycles=3):
         self.qubits = qubits
-        self.num_qubits = len(self.qubits)
         self.circuit = cirq.Circuit()
-        self.controlParams = np.array([])
+        self.totalNumCycles = int(totalNumCycles)
+        self.num_qubits = len(self.qubits)
+
+        self.bases = np.random.choice(
+            [cirq.rx, cirq.ry, cirq.rz],
+            int(totalNumCycles) * int(self.num_qubits),
+        )
+        self.bases = self.bases.reshape(
+            int(totalNumCycles), int(self.num_qubits)
+        )
+        numVariables = int(self.num_qubits) * int(totalNumCycles)
+        self.controlParams = np.array(
+            [sympy.Symbol(f"w{i}") for i in range(numVariables)]
+        )
+
+        self.controlParams = self.controlParams.reshape(
+            int(totalNumCycles), int(self.num_qubits)
+        )
 
     def buildCircuit(self):
-        # 1st entanglement set
-        for i in range(0, int(self.num_qubits) - 1):
-            for j in range(i + 1, int(self.num_qubits)):
-                self.circuit.append(cirq.CNOT(self.qubits[i], self.qubits[j]))
-
+        for i in range(int(self.totalNumCycles)):
+            self.generateCycle(i)
         return self.circuit
+
+    def generateInitialParameters(self):
+        return (
+            (
+                np.random.random([int(self.totalNumCycles), len(self.qubits)])
+                * 2
+                - 1
+            )
+            * np.pi
+        ).flatten()
 
     def getReadOut(self):
         return [cirq.Z(q) for q in self.qubits]
+
+    def generateCycle(self):
+        raise NotImplementedError(
+            "This is the base class. You need to specialize this function"
+        )
 
 
 class IdentityCircuitBase:
@@ -60,11 +84,6 @@ class IdentityCircuitBase:
         )
 
     def generateInvCycle(self):
-        raise NotImplementedError(
-            "This is the base class. You need to specialize this function"
-        )
-
-    def startConfig(self):
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
@@ -143,37 +162,6 @@ class IdentityCircuitBase:
         for i in range(int(int(self.totalNumCycles) / 2)):
             self.generateInvCycle(i)
         return self.circuit
-
-
-class RandomCircuitBase(IdentityCircuitBase):
-    def __init__(self, qubits, totalNumCycles=3):
-        super().__init__(qubits, totalNumCycles=totalNumCycles)
-
-        self.controlParams = self.controlParams.reshape(
-            int(totalNumCycles), int(self.num_qubits)
-        )
-        self.bases = np.random.choice(
-            [cirq.rx, cirq.ry, cirq.rz],
-            int(totalNumCycles) * int(self.num_qubits),
-        )
-        self.bases = self.bases.reshape(
-            int(totalNumCycles), int(self.num_qubits)
-        )
-
-    def buildCircuit(self):
-        for i in range(int(int(self.totalNumCycles))):
-            self.generateCycle(i)
-        return self.circuit
-
-    def generateInitialParameters(self):
-        return (
-            (
-                np.random.random([int(self.totalNumCycles), len(self.qubits)])
-                * 2
-                - 1
-            )
-            * np.pi
-        ).flatten()
 
 
 class CompleteRotationCircuitIdentity(IdentityCircuitBase):

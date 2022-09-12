@@ -89,6 +89,7 @@ class QuantumDecoder(tf.keras.Model):
         # )
     }
     """
+
     def __init__(self, num_features, parameters):
         # settings from parameters
         latent_dim = int(parameters["latent_dimensions"])
@@ -110,22 +111,28 @@ class QuantumDecoder(tf.keras.Model):
         # readout
         readout = qc_instance.getReadOut()
 
-        if parameters['quantum_backend'] == 'IBM - Aer':
-            backend = Aer.get_backend('statevector_simulator')
-        elif parameters['quantum_backend'] == 'IBM - Hardware':
-            provider = IBMQ.enable_account(parameters['IBMQ_token'])
-            backend = provider.get_backend(parameters['IBMQ_backend'])
+        if parameters["quantum_backend"] == "noiseless":
+            backend = "noiseless"
+        elif parameters["quantum_backend"] == "IBM - Aer":
+            backend = get_qiskit_sampler(
+                Aer.get_backend("statevector_simulator")
+            )
+        elif parameters["quantum_backend"] == "IBM - Hardware":
+            provider = IBMQ.enable_account(parameters["IBMQ_token"])
+            backend = get_qiskit_sampler(
+                provider.get_backend(parameters["IBMQ_backend"])
+            )
         else:
-            raise ValueError("'quantum_backend' has to be either 'IBM - Aer' or 'IBM - Hardware'.")
+            raise ValueError(
+                "'quantum_backend' has to be either 'noiseless', 'IBM - Aer', or 'IBM - Hardware'."
+            )
 
         # build main quantum circuit
         tf_main_circuit = tfq.layers.PQC(
             circuit,
             readout,
             repetitions=int(repetitions),
-            #ackend=self.backend_mapping[parameters["quantum_backend"]],
-            backend=get_qiskit_sampler(backend),
-            # differentiator=tfq.differentiators.ForwardDifference(),
+            backend=backend,
             differentiator=tfq.differentiators.ParameterShift(),
         )(tf_dummy_input)
 
