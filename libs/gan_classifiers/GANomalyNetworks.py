@@ -12,7 +12,7 @@ import libs.gan_classifiers.QuantumCircuits as quantumCircuits
 
 # qiskit backend
 from libs.qiskit_device import get_qiskit_sampler, set_debug_circuit_writer
-from qiskit import Aer
+from qiskit import *
 
 
 logger = logging.getLogger(__name__ + ".py")
@@ -77,6 +77,7 @@ class ClassicalDecoder(tf.keras.Model):
 
 
 class QuantumDecoder(tf.keras.Model):
+    """
     backend_mapping = {
         "noiseless": "noiseless",
         "IBM - Aer": get_qiskit_sampler(
@@ -87,7 +88,7 @@ class QuantumDecoder(tf.keras.Model):
         #    backend("Q4", "API KEY")
         # )
     }
-
+    """
     def __init__(self, num_features, parameters):
         # settings from parameters
         latent_dim = int(parameters["latent_dimensions"])
@@ -109,12 +110,21 @@ class QuantumDecoder(tf.keras.Model):
         # readout
         readout = qc_instance.getReadOut()
 
+        if parameters['quantum_backend'] == 'IBM - Aer':
+            backend = Aer.get_backend('statevector_simulator')
+        elif parameters['quantum_backend'] == 'IBM - Hardware':
+            provider = IBMQ.enable_account(parameters['IBMQ_token'])
+            backend = provider.get_backend(parameters['IBMQ_backend'])
+        else:
+            raise ValueError("'quantum_backend' has to be either 'IBM - Aer' or 'IBM - Hardware'.")
+
         # build main quantum circuit
         tf_main_circuit = tfq.layers.PQC(
             circuit,
             readout,
             repetitions=int(repetitions),
-            backend=self.backend_mapping[parameters["quantum_backend"]],
+            #ackend=self.backend_mapping[parameters["quantum_backend"]],
+            backend=get_qiskit_sampler(backend),
             # differentiator=tfq.differentiators.ForwardDifference(),
             differentiator=tfq.differentiators.ParameterShift(),
         )(tf_dummy_input)
