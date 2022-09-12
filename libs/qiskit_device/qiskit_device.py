@@ -1,6 +1,7 @@
 import numpy as np
 import cirq
-from qiskit import QuantumCircuit, execute
+from qiskit import QuantumCircuit, execute, IBMQ
+from qiskit.providers.ibmq.managed import IBMQJobManager 
 from typing import Optional, Union, Sequence
 
 WRITE_CIRCUIT = False
@@ -24,8 +25,22 @@ def get_labels(ibm_result, qasm_circuit):
 def qc_exe(circuits, backend, resolvers, repetitions):
     if not isinstance(circuits, list):
         circuits = [circuits]
-    current_job = execute(circuits, backend, shots=max(repetitions))
-    results = current_job.result()
+
+    # distinguish between local simulator and IBMQ backend
+    if IBMQ.active_account():
+        provider = IBMQ.get_provider(hub='ibm-q')
+        if backend in provider.backends():
+            # IBMQJobManger manages job sizes w.r.t. max_experiments of selected IBMQ backend
+            job_manager = IBMQJobManager()
+            current_job = job_manager.run(circuits, backend, shots=max(repetitions))
+            results = current_job.results()
+            results = results.combine_results()
+        else:
+            raise NameError('The provided IBMQ backend does not exist.')
+    else:
+        current_job = execute(circuits, backend, shots=max(repetitions))
+        results = current_job.result()
+
     # now reformat for cirq
 
     output = []
