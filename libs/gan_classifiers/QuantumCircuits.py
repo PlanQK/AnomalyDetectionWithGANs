@@ -13,18 +13,9 @@ class StandardCircuit:
         self.qubits = qubits
         self.num_qubits = len(self.qubits)
         self.circuit = cirq.Circuit()
-        self.inputParams = np.array(
-            [sympy.Symbol(f"input{i}") for i in range(int(self.num_qubits))]
-        )
         self.controlParams = np.array([])
 
     def buildCircuit(self):
-        for i in range(int(self.num_qubits)):
-            # create circuit
-            self.circuit.append(
-                cirq.rx(self.inputParams[i]).on(self.qubits[i])
-            )
-
         # 1st entanglement set
         for i in range(0, int(self.num_qubits) - 1):
             for j in range(i + 1, int(self.num_qubits)):
@@ -54,9 +45,6 @@ class IdentityCircuitBase:
             int(math.ceil(int(totalNumCycles) / 2)), int(self.num_qubits)
         )
 
-        self.inputParams = np.array(
-            [sympy.Symbol(f"input{i}") for i in range(int(self.num_qubits))]
-        )
         numVariables = int(self.num_qubits) * int(totalNumCycles)
 
         self.controlParams = np.array(
@@ -145,12 +133,6 @@ class IdentityCircuitBase:
             ).flatten()
 
     def buildCircuit(self):
-        # state input
-        for i in range(len(self.inputParams)):
-            self.circuit.append(
-                cirq.rx(self.inputParams[i] * np.pi).on(self.qubits[i])
-            )
-
         # if odd then number of cycles then add an empty layer at the front
         if int(self.totalNumCycles) % 2:
             self.generateCycle(-1)
@@ -179,12 +161,6 @@ class RandomCircuitBase(IdentityCircuitBase):
         )
 
     def buildCircuit(self):
-        # state input
-        for i in range(len(self.inputParams)):
-            self.circuit.append(
-                cirq.rx(self.inputParams[i] * np.pi).on(self.qubits[i])
-            )
-
         for i in range(int(int(self.totalNumCycles))):
             self.generateCycle(i)
         return self.circuit
