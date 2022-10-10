@@ -1,7 +1,8 @@
 import numpy as np
 import cirq
 from qiskit import QuantumCircuit, execute, IBMQ
-from qiskit.providers.ibmq.managed import IBMQJobManager 
+from qiskit.providers.ibmq.managed import IBMQJobManager
+from qiskit.compiler import transpile 
 from typing import Optional, Union, Sequence
 
 WRITE_CIRCUIT = False
@@ -30,6 +31,8 @@ def qc_exe(circuits, backend, resolvers, repetitions):
     if IBMQ.active_account():
         provider = IBMQ.get_provider(hub='ibm-q')
         if backend in provider.backends():
+            # need to map circuits onto backend's gate set, IBMQJobManger does not do transpile
+            circuits = transpile(circuits = circuits, backend = backend)
             # IBMQJobManger manages job sizes w.r.t. max_experiments of selected IBMQ backend
             job_manager = IBMQJobManager()
             current_job = job_manager.run(circuits, backend, shots=max(repetitions))
