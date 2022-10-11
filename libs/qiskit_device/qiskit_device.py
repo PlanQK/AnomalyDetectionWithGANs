@@ -34,11 +34,26 @@ def qc_exe(circuits, backend, resolvers, repetitions):
         if backend in provider.backends():
             # need to map circuits onto backend's gate set, IBMQJobManger does not do transpile
             circuits = transpile(circuits = circuits, backend = backend)
+            
             # IBMQJobManger manages job sizes w.r.t. max_experiments of selected IBMQ backend
             job_manager = IBMQJobManager()
-            current_job = job_manager.run(
-                circuits, backend, shots=max(repetitions)
-            )
+            # if one of the jobs fails, retry
+            # for now number of tries until final failure is hardcoded
+            num_tries = 5
+            for i in range(num_tries):
+                current_job = job_manager.run(
+                    circuits, backend, shots=max(repetitions)
+                )
+                last_jobs = current_job.jobs()
+                error = False
+                for last_job in last_jobs:
+                    if last_job.error_message():
+                        error = True
+                if error == True:
+                    print('An error has occured. Retrying...')
+                else:
+                    break
+
             results = current_job.results()
             results = results.combine_results()
         else:
