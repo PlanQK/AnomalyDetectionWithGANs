@@ -6,3 +6,4 @@ scikit-opt==0.6.3
 scikit-optimize==0.8.1
 tensorflow-quantum==0.7.0
 tqdm==4.59.0
+qiskit==0.38
