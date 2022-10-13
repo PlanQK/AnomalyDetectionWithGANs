@@ -1,0 +1,1 @@
+docker run -it --rm -p 81:80 -p 8081:8080 planqk-service /bin/bash -c "cd /app/user_code/;python src/server.py & streamlit run src/ui.py --server.port 80"

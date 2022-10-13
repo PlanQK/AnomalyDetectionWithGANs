@@ -21,12 +21,12 @@ def start_optimization():
     config = json_data['params']
     data = json_data['data']
 
-    f = io.StringIO()
-    with redirect_stderr(f):
-        result = run(data=data, params=config)
+    #f = io.StringIO()
+    #with redirect_stderr(f):
+    result = run(data=data, params=config)
     response = {
         'result':result.to_json(),
-        'logs':f.getvalue()
+        #'logs':f.getvalue()
     } 
     return json.dumps(response)
 
