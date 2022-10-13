@@ -7,3 +7,6 @@ scikit-optimize==0.8.1
 tensorflow-quantum==0.7.0
 tqdm==4.59.0
 qiskit==0.38
+Flask==2.2.2
+streamlit==1.13
+seaborn==0.12.0

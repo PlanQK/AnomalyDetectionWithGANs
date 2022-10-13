@@ -1,8 +1,8 @@
 # #!/bin/bash
 
 git_root=`git rev-parse --show-toplevel`
-path_prefix="input/"
-path_to_json="train"
+path_prefix="input2/"
+path_to_json="test_classical"
 
 file="${git_root}/${path_prefix}${path_to_json}.json"
 
