@@ -3,8 +3,8 @@
 
 import json
 
-from .program import run
 from libs.qiskit_device import set_debug_circuit_writer
+from .program import run
 
 # make sure the file is in the input folder
 # use train.json for training data

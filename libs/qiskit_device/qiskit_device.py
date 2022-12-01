@@ -1,9 +1,10 @@
+from typing import Optional, Union, Sequence
 import numpy as np
 import cirq
 from qiskit import QuantumCircuit, execute, IBMQ
 from qiskit.providers.ibmq.managed import IBMQJobManager
 from qiskit.compiler import transpile 
-from typing import Optional, Union, Sequence
+
 
 WRITE_CIRCUIT = False
 

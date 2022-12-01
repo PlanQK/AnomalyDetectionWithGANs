@@ -1,7 +1,6 @@
 """
 This file handles the input data.
 """
-import pandas as pd
 import numpy as np
 
 
@@ -20,8 +19,9 @@ class Data:
 
     def __init__(self, data, parameters):
         self.data = data
-        # The derived classes need to add at least the train_data
-        # variable
+        # Initialize train_data as None to avoid errors,
+        # derived classes need to set this to a useful value.
+        self.train_data = None
 
     def get_validation_data(self, batch_size):
         raise NotImplementedError(

@@ -2,17 +2,18 @@
 This file holds classes which contain the neural network classifiers of the GANomaly model.
 """
 import logging
-import json
 
 import cirq
 import numpy
 import tensorflow as tf
 import tensorflow_quantum as tfq
+from qiskit import Aer, IBMQ
+
 import libs.gan_classifiers.QuantumCircuits as quantumCircuits
 
 # qiskit backend
-from libs.qiskit_device import get_qiskit_sampler, set_debug_circuit_writer
-from qiskit import *
+from libs.qiskit_device import get_qiskit_sampler
+
 
 
 logger = logging.getLogger(__name__ + ".py")
