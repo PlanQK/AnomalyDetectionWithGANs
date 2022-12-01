@@ -25,5 +25,5 @@ def reformat_for_json(data):
 def export_to_json(data, fp=None):
     if not fp:
         fp = "model/data.json"
-    with open(fp, "w") as foo:
+    with open(fp, "w", encoding='utf-8') as foo:
         json.dump(data, foo, cls=NpEncoder)
