@@ -271,9 +271,6 @@ class QuantumDecoderPlotter(Plotter):
     Class holding additionally methods and attributes to conduct the training or testing procedure.
     """
 
-    def __init__(self, train_hist, fp="", pix_num_one_side=0, validation=True):
-        super().__init__(train_hist, fp, pix_num_one_side, validation)
-
     def plot(self):
         if self.validation:
             self.loss_plot()

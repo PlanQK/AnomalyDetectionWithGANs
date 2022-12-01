@@ -45,7 +45,7 @@ class RandomCircuitBase:
     def getReadOut(self):
         return [cirq.Z(q) for q in self.qubits]
 
-    def generateCycle(self):
+    def generateCycle(self, cyclePos):
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
@@ -78,12 +78,12 @@ class IdentityCircuitBase:
             int(totalNumCycles), int(self.num_qubits)
         )
 
-    def generateCycle(self):
+    def generateCycle(self, cyclePos):
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
 
-    def generateInvCycle(self):
+    def generateInvCycle(self, cyclePos):
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )

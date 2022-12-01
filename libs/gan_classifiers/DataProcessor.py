@@ -94,22 +94,22 @@ class SupervisedData(Data):
             len(self.validation_data_unnormal),
             len(self.validation_data_normal),
         )
-        a = (
+        normal = (
             self.validation_data_normal.sample(int(batch_size))
             .to_numpy()
             .astype(np.float64)
         )
-        b = (
+        unnormal = (
             self.validation_data_unnormal.sample(int(batch_size))
             .to_numpy()
             .astype(np.float64)
         )
-        return (a, b)
+        return (normal, unnormal)
 
     def get_test_data(self):
-        a = self.normal_samples.to_numpy().astype(np.float64)
-        b = self.unnormal_samples.to_numpy().astype(np.float64)
-        return (a, b)
+        normal = self.normal_samples.to_numpy().astype(np.float64)
+        unnormal = self.unnormal_samples.to_numpy().astype(np.float64)
+        return (normal, unnormal)
 
 
 class UnsupervisedData(Data):

@@ -37,7 +37,7 @@ class Discriminator(tf.keras.Model):
 class Encoder(tf.keras.Model):
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
-        encInput = tf.keras.layers.Input(shape=(num_features), name="EncInput")
+        encInput = tf.keras.layers.Input(shape=num_features, name="EncInput")
         model = tf.keras.layers.Dense(num_features)(encInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(max(latent_dim, int(num_features / 2)))(
@@ -58,7 +58,7 @@ class Encoder(tf.keras.Model):
 class ClassicalDecoder(tf.keras.Model):
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
-        decInput = tf.keras.layers.Input(shape=(latent_dim), name="DecInput")
+        decInput = tf.keras.layers.Input(shape=latent_dim, name="DecInput")
         model = tf.keras.layers.Dense(latent_dim)(decInput)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(min(num_features, int(latent_dim * 2)))(
@@ -279,5 +279,5 @@ class QuantumDecoderClassifier(Classifier):
         self.auto_encoder.summary()
         self.auto_decoder.summary()
         print("Quantum-Layer in decoder:\n")
-        print(self.quantum_circuit)
+        print(self.auto_encoder.quantum_circuit)
         self.discriminator.summary()
