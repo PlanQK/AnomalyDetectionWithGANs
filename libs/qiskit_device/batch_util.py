@@ -47,10 +47,10 @@ class SampledExpectationBatch:
 
     def collect(self, sampler):
         circuit_list = []
-        for i in range(len(self._circuits)):
+        for i, value in enumerate(self._circuits):
             circuit_list.append(
                 self.circuit_with_measurements(
-                    self._circuits[i], self._observables[i]
+                    value, self._observables[i]
                 )
             )
         results = sampler.run_batch(

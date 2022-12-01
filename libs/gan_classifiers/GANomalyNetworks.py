@@ -164,9 +164,9 @@ class QuantumDecoder(tf.keras.Model):
     def transform_z_to_z_quantum(self, z):
         z_np = z.numpy()
         result = []
-        for i in range(len(z_np)):
+        for pair in enumerate(z_np):
             circuit = cirq.Circuit()
-            transformed_inputs = 2 * numpy.arcsin(z_np[i])
+            transformed_inputs = 2 * numpy.arcsin(pair[1])
             for j in range(int(self.latent_dim)):
                 circuit.append(
                     cirq.rx(transformed_inputs[j]).on(self.qubits[j])

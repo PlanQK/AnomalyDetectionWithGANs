@@ -66,16 +66,16 @@ def qc_exe(circuits, backend, resolvers, repetitions):
     # now reformat for cirq
 
     output = []
-    for i in range(len(circuits)):
-        labels = get_labels(results, circuits[i])
+    for i, circuit in enumerate(circuits):
+        labels = get_labels(results, circuit)
         reformated_result = {e: [] for e in labels}
 
-        counts = results.get_counts(circuits[i])
+        counts = results.get_counts(circuit)
         for key, duplications in counts.items():
             measurements = key.split()
-            for j in range(len(measurements)):
+            for j, measurement in enumerate(measurements):
                 reformated_result[labels[j]].extend(
-                    [[int(measurements[j])]] * duplications
+                    [[int(measurement)]] * duplications
                 )
 
         output.append(
