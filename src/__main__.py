@@ -9,8 +9,8 @@ from .program import run
 # make sure the file is in the input folder
 # use train.json for training data
 # use test.json for testing data
-input_file = "test.json"
-with open(f"./input/{input_file}", encoding='utf-8') as file:
+INPUT_FILE = "test.json"
+with open(f"./input/{INPUT_FILE}", encoding='utf-8') as file:
     inp = json.load(file)
 
 # set_debug_circuit_writer(True)

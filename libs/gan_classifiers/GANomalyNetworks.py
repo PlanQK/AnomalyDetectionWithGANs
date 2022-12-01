@@ -23,23 +23,23 @@ class Discriminator(tf.keras.Model):
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
 
-        discInput = tf.keras.layers.Input(
+        disc_input = tf.keras.layers.Input(
             shape=(num_features), name="DiscInput"
         )
-        model = tf.keras.layers.Dense(num_features)(discInput)
+        model = tf.keras.layers.Dense(num_features)(disc_input)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(max(1, int(num_features / 2)))(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(max(1, int(num_features / 2)))(model)
         model = tf.keras.layers.Dense(1)(model)
-        super().__init__(discInput, model, name="Discriminator")
+        super().__init__(disc_input, model, name="Discriminator")
 
 
 class Encoder(tf.keras.Model):
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
-        encInput = tf.keras.layers.Input(shape=num_features, name="EncInput")
-        model = tf.keras.layers.Dense(num_features)(encInput)
+        enc_input = tf.keras.layers.Input(shape=num_features, name="EncInput")
+        model = tf.keras.layers.Dense(num_features)(enc_input)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(max(latent_dim, int(num_features / 2)))(
             model
@@ -51,7 +51,7 @@ class Encoder(tf.keras.Model):
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(latent_dim)(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        super().__init__(encInput, model, name="Encoder")
+        super().__init__(enc_input, model, name="Encoder")
         # only after super can we set member variables
         self.latent_dim = latent_dim
 
@@ -59,8 +59,8 @@ class Encoder(tf.keras.Model):
 class ClassicalDecoder(tf.keras.Model):
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
-        decInput = tf.keras.layers.Input(shape=latent_dim, name="DecInput")
-        model = tf.keras.layers.Dense(latent_dim)(decInput)
+        dec_input = tf.keras.layers.Input(shape=latent_dim, name="DecInput")
+        model = tf.keras.layers.Dense(latent_dim)(dec_input)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(min(num_features, int(latent_dim * 2)))(
             model
@@ -72,7 +72,7 @@ class ClassicalDecoder(tf.keras.Model):
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
         model = tf.keras.layers.Dense(num_features)(model)
         model = tf.keras.layers.LeakyReLU(alpha=0.05)(model)
-        super().__init__(decInput, model, name="Decoder")
+        super().__init__(dec_input, model, name="Decoder")
         # only after super can we set member variables
         self.latent_dim = latent_dim
 
@@ -96,7 +96,7 @@ class QuantumDecoder(tf.keras.Model):
         latent_dim = int(parameters["latent_dimensions"])
         repetitions = parameters["shots"]
         quantum_circuit_type = parameters["quantum_circuit_type"]
-        totalNumCycles = parameters["quantum_depth"]
+        total_num_cycles = parameters["quantum_depth"]
 
         qubits = cirq.GridQubit.rect(1, latent_dim)
 
@@ -105,7 +105,7 @@ class QuantumDecoder(tf.keras.Model):
         )
 
         qc_instance = getattr(quantumCircuits, quantum_circuit_type)(
-            qubits, totalNumCycles
+            qubits, total_num_cycles
         )
         circuit = qc_instance.buildCircuit()
 
@@ -159,7 +159,7 @@ class QuantumDecoder(tf.keras.Model):
         self.qubits = qubits
         self.latent_dim = latent_dim
         self.quantum_circuit = circuit + readout
-        self.totalNumCycles = totalNumCycles
+        self.total_num_cycles = total_num_cycles
 
     def transform_z_to_z_quantum(self, z):
         z_np = z.numpy()

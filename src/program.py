@@ -90,9 +90,9 @@ def run(
 
         if params["train_or_predict"] == "train":
             trainer = Trainer(data_values, classifier, metrics_object, params)
-            classifierWeights = trainer.train()
-            output = metrics_object.getLastMetrics()
-            output["trained_model"] = classifierWeights
+            classifier_weights = trainer.train()
+            output = metrics_object.get_last_metrics()
+            output["trained_model"] = classifier_weights
             output = reformat_for_json(output)
             export_to_json(output, "response_training.json")
             logger.info("Training of the GAN classifier has ended")

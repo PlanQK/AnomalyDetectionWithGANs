@@ -6,7 +6,7 @@ class Metric:
         self.data = data
         self.validation_samples = int(parameters["validation_samples"])
         self.metrics = self._metrics_template()
-        self.metricHistory = []
+        self.metric_history = []
 
     def update_key(self, key, value):
         assert (
@@ -32,15 +32,15 @@ class Metric:
         """All metrics are collected and are stored in the history.
         A new set of empty metric data is generated.
         """
-        self.metricHistory.append(self.metrics)
+        self.metric_history.append(self.metrics)
         self.metrics = self._metrics_template()
 
-    def getLastMetrics(self):
-        return self.metricHistory[-1].copy()
+    def get_last_metrics(self):
+        return self.metric_history[-1].copy()
 
     def history_from_key(self, key):
         """Get a list of all historic entries for a given key."""
-        return [m[key] for m in self.metricHistory]
+        return [m[key] for m in self.metric_history]
 
     def is_best(self):
         """Returns if the current set of metrics is the best in the
