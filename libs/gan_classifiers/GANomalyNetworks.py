@@ -185,12 +185,12 @@ class Classifier:
 
     def print_model_summaries(self):
         """
-        Print a model of all models in std_out. Keep in mind that the same model for the encoder is used for both
+        Print a model of all models via the logger. Keep in mind that the same model for the encoder is used for both
         of its occurrences.
         """
-        self.auto_encoder.summary()
-        self.auto_decoder.summary()
-        self.discriminator.summary()
+        self.auto_encoder.summary(print_fn=logger.info)
+        self.auto_decoder.summary(print_fn=logger.info)
+        self.discriminator.summary(print_fn=logger.info)
 
     def save(self):
         return {
@@ -273,11 +273,11 @@ class QuantumDecoderClassifier(Classifier):
 
     def print_model_summaries(self):
         """
-        Print a model of all models in std_out. Keep in mind that the same model for the encoder is used for both
+        Print a model of all models via the logger. Keep in mind that the same model for the encoder is used for both
         of its occurrences.
         """
-        self.auto_encoder.summary()
-        self.auto_decoder.summary()
-        print("Quantum-Layer in decoder:\n")
-        print(self.auto_encoder.quantum_circuit)
-        self.discriminator.summary()
+        self.auto_encoder.summary(print_fn=logger.info)
+        self.auto_decoder.summary(print_fn=logger.info)
+        logger.info("Quantum-Layer in decoder:\n")
+        logger.info(self.auto_encoder.quantum_circuit)
+        self.discriminator.summary(print_fn=logger.info)
