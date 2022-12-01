@@ -34,17 +34,6 @@ def run(
     data: Optional[Dict[str, Any]] = None,
     params: Optional[Dict[str, Any]] = None,
 ) -> Response:
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    fh = logging.FileHandler("log.log", mode="w")
-    fh.setFormatter(
-        logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-    )
-    logger.addHandler(fh)
     """
     Default entry point of your code. Start coding here!
 
@@ -57,6 +46,17 @@ def run(
         response: (ResultResponse | ErrorResponse): Response as arbitrary json-serializable dict or an error to be
         passed back to the client
     """
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    fh = logging.FileHandler("log.log", mode="w")
+    fh.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+    )
+    logger.addHandler(fh)
+
     try:
         # Process data & load metrics
         if params["is_supervised"]:
@@ -110,7 +110,7 @@ def run(
             return ResultResponse(result=output)
     except Exception as e:
         logger.error(
-            "An error occured while processing. Error reads:"
-            "\n" + traceback.format_exc()
+            "An error occured while processing. Error reads: \n %s",
+            traceback.format_exc()
         )
         return ErrorResponse(code="500", detail=f"{type(e).__name__}: {e}")

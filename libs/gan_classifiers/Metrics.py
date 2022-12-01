@@ -43,8 +43,8 @@ class Metric:
         return [m[key] for m in self.metric_history]
 
     def is_best(self):
-        """Returns if the current set of metrics is the best in the
-        training history.
+        """Returns True if the current set of metrics is the best
+        in the training history.
 
         This function is used to determine if the previous model
         weights should be overwritten."""
