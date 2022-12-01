@@ -1,3 +1,6 @@
+"""
+This file contains classes for calculating various metrics.
+"""
 import numpy as np
 
 
@@ -167,7 +170,7 @@ class SupervisedMetric(Metric):
                 )
                 ** (1 / 2),
             )
-        except:
+        except ZeroDivisionError:
             # division by 0
             self.update_key("MCC", 0.0)
 

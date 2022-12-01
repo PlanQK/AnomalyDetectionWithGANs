@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
-
+"""
+This file provides objects meant as return values.
+"""
 import json
 
 

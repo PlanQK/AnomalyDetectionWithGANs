@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
-
+"""
+This file is the entrypoint for the Quantum GAN outlier detection.
+"""
 import json
 
 from libs.qiskit_device import set_debug_circuit_writer

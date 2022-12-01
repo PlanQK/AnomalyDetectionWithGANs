@@ -1,3 +1,6 @@
+"""
+This file contains classes providing the quantum circuits used for the GANomaly model.
+"""
 import math
 import numpy as np
 import sympy
@@ -114,11 +117,11 @@ class IdentityCircuitBase:
     def get_bases(self):
         bases = []
         for element in self.bases.flatten():
-            if element == cirq.rx:
+            if element is cirq.rx:
                 basis = "X"
-            elif element == cirq.ry:
+            elif element is cirq.ry:
                 basis = "Y"
-            elif element == cirq.rz:
+            elif element is cirq.rz:
                 basis = "Z"
             else:
                 raise ValueError(

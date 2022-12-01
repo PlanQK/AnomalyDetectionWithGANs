@@ -1,3 +1,6 @@
+"""
+This file provides the Trainer class which conducts the training process.
+"""
 import logging
 import time
 

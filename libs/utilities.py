@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
-
+"""
+This file provides utility functions and classes for json files.
+"""
 import json
 import numpy as np
 

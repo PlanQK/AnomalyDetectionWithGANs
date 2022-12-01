@@ -258,7 +258,7 @@ class ClassicalDenseClassifier(Classifier):
 
 class QuantumDecoderClassifier(Classifier):
     """
-    Class containing all required network structures for the GANomaly method as classical dense networks.
+    Class containing all required network structures for the GANomaly method using a quantum decoder.
     """
 
     def __init__(self, data, parameters):
