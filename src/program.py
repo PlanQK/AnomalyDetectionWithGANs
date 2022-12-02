@@ -51,9 +51,7 @@ def run(
 
     fh = logging.FileHandler("log.log", mode="w")
     fh.setFormatter(
-        logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
     logger.addHandler(fh)
 
@@ -111,6 +109,6 @@ def run(
     except Exception as e:
         logger.error(
             "An error occured while processing. Error reads: \n %s",
-            traceback.format_exc()
+            traceback.format_exc(),
         )
         return ErrorResponse(code="500", detail=f"{type(e).__name__}: {e}")

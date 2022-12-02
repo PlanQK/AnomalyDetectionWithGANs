@@ -105,7 +105,7 @@ def _validate_inputs(circuits, param_resolvers, simulator, sim_type):
     if not isinstance(circuits, (list, tuple, np.ndarray)):
         raise TypeError(
             "circuits must be a list or array."
-            " Given: {}".format(type(circuits))
+            f" Given: {type(circuits)}"
         )
 
     if any(not isinstance(x, cirq.Circuit) for x in circuits):
@@ -114,15 +114,15 @@ def _validate_inputs(circuits, param_resolvers, simulator, sim_type):
     if not isinstance(param_resolvers, (list, tuple, np.ndarray)):
         raise TypeError(
             "param_resolvers must be a list or array."
-            " Given: {}".format(type(param_resolvers))
+            f" Given: {type(param_resolvers)}"
         )
 
     if any(not isinstance(x, cirq.ParamResolver) for x in param_resolvers):
         raise TypeError("param_resolvers must contain cirq.ParamResolvers.")
 
-    if not (len(circuits) == len(param_resolvers)):
+    if not len(circuits) == len(param_resolvers):
         raise ValueError(
-            "Circuit batch size does not match resolve batch " "size."
+            "Circuit batch size does not match resolve batch size."
         )
 
     if sim_type == "analytic":
@@ -130,7 +130,7 @@ def _validate_inputs(circuits, param_resolvers, simulator, sim_type):
             raise TypeError(
                 "For analytic operations only"
                 " cirq.SimulatesFinalState"
-                " is required. Given: {}".format(type(simulator))
+                f" is required. Given: {type(simulator)}"
             )
 
     elif sim_type == "expectation":
@@ -146,14 +146,14 @@ def _validate_inputs(circuits, param_resolvers, simulator, sim_type):
                 "For expectation operations a "
                 "cirq.sim.simulator.SimulatesExpectationValues "
                 "or cirq.DensityMatrixSimulator"
-                "is required.  Given: {}".format(type(simulator))
+                f"is required.  Given: {type(simulator)}"
             )
 
     elif sim_type == "sample":
         if not isinstance(simulator, cirq.Sampler):
             raise TypeError(
                 "For sample based operations a cirq.Sampler is "
-                "required. Given: {}".format(type(simulator))
+                f"required. Given: {type(simulator)}"
             )
     else:
         raise ValueError("Invalid simulator type specified.")
@@ -255,7 +255,7 @@ def batch_calculate_expectation(circuits, param_resolvers, ops, simulator):
 
     if not isinstance(ops, (list, tuple, np.ndarray)):
         raise TypeError(
-            "ops must be a list or array." " Given: {}".format(type(ops))
+            "ops must be a list or array." f" Given: {type(ops)}"
         )
 
     if len(ops) != len(circuits):
@@ -268,7 +268,7 @@ def batch_calculate_expectation(circuits, param_resolvers, ops, simulator):
             if not isinstance(x, cirq.PauliSum):
                 raise TypeError(
                     "ops must contain only cirq.PauliSum objects."
-                    " Given: {}".format(type(x))
+                    f" Given: {type(x)}"
                 )
 
     all_exp_vals = (
@@ -336,7 +336,7 @@ def batch_calculate_sampled_expectation(
 
     if not isinstance(ops, (list, tuple, np.ndarray)):
         raise TypeError(
-            "ops must be a list or array." " Given: {}".format(type(ops))
+            "ops must be a list or array." f" Given: {type(ops)}"
         )
 
     if len(ops) != len(circuits):
@@ -361,7 +361,7 @@ def batch_calculate_sampled_expectation(
             if not isinstance(x, cirq.PauliSum):
                 raise TypeError(
                     "ops must contain only cirq.PauliSum objects."
-                    " Given: {}".format(type(x))
+                    f" Given: {type(x)}"
                 )
 
     circuit_list = []
@@ -418,7 +418,7 @@ def batch_sample(circuits, param_resolvers, n_samples, simulator):
 
     if not isinstance(n_samples, int):
         raise TypeError(
-            "n_samples must be an int." "Given: {}".format(type(n_samples))
+            "n_samples must be an int." f"Given: {type(n_samples)}"
         )
 
     if n_samples <= 0:

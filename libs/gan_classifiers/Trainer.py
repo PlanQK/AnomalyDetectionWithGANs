@@ -42,9 +42,7 @@ class Trainer:
         self.data = data
         self.classifier = classifier
 
-        self.validation = (
-            True if parameters["train_or_predict"] == "train" else False
-        )
+        self.validation = True if parameters["train_or_predict"] == "train" else False
         self.opt_disc = tf.keras.optimizers.Adam(
             beta_1=0.5,
             learning_rate=float(parameters["discriminator_training_rate"]),
@@ -71,6 +69,7 @@ class Trainer:
         self.enc_loss = 0
         self.d_loss = 0
         self.best_mcc = -1.0
+        self.best_weights = None
 
     def train(self):
         """Run the training procedure. The first validation and logging of losses happens after the validation interval
@@ -84,30 +83,22 @@ class Trainer:
         """
         tic = time.perf_counter()
 
-        for _ in tqdm(range(int(self.n_steps)), desc=self.__str__()):
+        for _ in tqdm(range(int(self.n_steps)), desc=str(self)):
             self._step()
             self.step_counter += 1
             if (int(self.step_counter) % int(self.update_interval)) == 0:
                 # generic Metric info
-                self.metrics_object.update_key(
-                    "step_number", self.step_counter
-                )
+                self.metrics_object.update_key("step_number", self.step_counter)
                 toc = time.perf_counter()
                 self.metrics_object.update_key("total_runtime", toc - tic)
                 self.metrics_object.update_key(
                     "runtime_per_step", (toc - tic) / self.step_counter
                 )
                 self.metrics_object.update_key("generator_loss", self.g_loss)
-                self.metrics_object.update_key(
-                    "adversarial_loss", self.adv_loss
-                )
-                self.metrics_object.update_key(
-                    "contextual_loss", self.con_loss
-                )
+                self.metrics_object.update_key("adversarial_loss", self.adv_loss)
+                self.metrics_object.update_key("contextual_loss", self.con_loss)
                 self.metrics_object.update_key("encoder_loss", self.enc_loss)
-                self.metrics_object.update_key(
-                    "discriminator_loss", self.d_loss
-                )
+                self.metrics_object.update_key("discriminator_loss", self.d_loss)
                 self.metrics_object.metric_during_training(
                     self.classifier.predict, self.classifier.generate
                 )
