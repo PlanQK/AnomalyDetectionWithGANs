@@ -13,21 +13,44 @@ WRITE_CIRCUIT = False
 
 
 def set_debug_circuit_writer(write_circuit: bool):
+    """Sets a debug variable saving the circuits if true.
+
+    Args:
+        write_circuit: Binary value to set
+    """
     global WRITE_CIRCUIT
     WRITE_CIRCUIT = write_circuit
 
 
 def get_labels(ibm_result, qasm_circuit):
+    """Extracts bit labels from results.
+
+    Args:
+        ibm_result: A results object
+        qasm_circuit: A circuit in QASM format
+
+    Returns: Bit labels of the given circuit
+    """
     res_list = ibm_result.to_dict()["results"]
     # now find the element with name=qasm_circuit
-    result = list(
-        filter(lambda x: x["header"]["name"] == qasm_circuit.name, res_list)
-    )[0]
+    result = list(filter(lambda x: x["header"]["name"] == qasm_circuit.name, res_list))[
+        0
+    ]
     return [e[0][2:] for e in result["header"]["clbit_labels"]]
 
 
 # Backend can be actual hardware or simulator e.g. 'qasm_simulator'
 def qc_exe(circuits, backend, resolvers, repetitions):
+    """
+    Executes circuits on backend and reformats the results for cirq.
+    Args:
+        circuit: Circuit or list of circuits to execute.
+        backend: Qiskit backend, either simulator or IBM hardware
+        resolvers: A list of `cirq.ParamResolver`
+        repetitions: A list specifying the number of repetitions. If a single integer is given,
+        it is interpreted as a constant list.
+
+    """
     if not isinstance(circuits, list):
         circuits = [circuits]
     if not isinstance(repetitions, list):
@@ -37,24 +60,22 @@ def qc_exe(circuits, backend, resolvers, repetitions):
         provider = IBMQ.get_provider(hub="ibm-q")
         if backend in provider.backends():
             # need to map circuits onto backend's gate set, IBMQJobManger does not do transpile
-            circuits = transpile(circuits = circuits, backend = backend)
-            
+            circuits = transpile(circuits=circuits, backend=backend)
+
             # IBMQJobManger manages job sizes w.r.t. max_experiments of selected IBMQ backend
             job_manager = IBMQJobManager()
             # if one of the jobs fails, retry
             # for now number of tries until final failure is hardcoded
             num_tries = 5
             for i in range(num_tries):
-                current_job = job_manager.run(
-                    circuits, backend, shots=max(repetitions)
-                )
+                current_job = job_manager.run(circuits, backend, shots=max(repetitions))
                 last_jobs = current_job.jobs()
                 error = False
                 for last_job in last_jobs:
                     if last_job.error_message():
                         error = True
-                if error == True:
-                    print('An error has occured. Retrying...')
+                if error:
+                    print("An error has occured. Retrying...")
                 else:
                     break
 
@@ -77,16 +98,12 @@ def qc_exe(circuits, backend, resolvers, repetitions):
         for key, duplications in counts.items():
             measurements = key.split()
             for j, measurement in enumerate(measurements):
-                reformated_result[labels[j]].extend(
-                    [[int(measurement)]] * duplications
-                )
+                reformated_result[labels[j]].extend([[int(measurement)]] * duplications)
 
         output.append(
             cirq.ResultDict(
                 params=resolvers[i],
-                measurements={
-                    k: np.array(v) for k, v in reformated_result.items()
-                },
+                measurements={k: np.array(v) for k, v in reformated_result.items()},
             )
         )
     return output
@@ -94,20 +111,12 @@ def qc_exe(circuits, backend, resolvers, repetitions):
 
 # This is the transformer
 def cirq2qasm(circuit):
-    """Representation of a cirq.Circuit in QASM format via cirq.QasmOutput.
+    """Representation of a `cirq.Circuit` in QASM format via `cirq.QasmOutput`.
     Args:
-      operations: Tree of operations to insert.
-      qubits: The qubits used in the operations.
-      header: A multi-line string that is placed in a comment at the top
-            of the QASM.
-        precision: The number of digits after the decimal to show for
-          numbers in the QASM code.
-        version: The QASM version to target. Objects may return different
-            QASM depending on version.
+      circuit: The `cirq.Circuit` to transform
+    Output: The circuit in QASM format
     """
-    qasm_output = cirq.QasmOutput(
-        circuit.all_operations(), circuit.all_qubits()
-    )
+    qasm_output = cirq.QasmOutput(circuit.all_operations(), circuit.all_qubits())
     qasm_circuit = QuantumCircuit().from_qasm_str(str(qasm_output))
 
     if WRITE_CIRCUIT:
@@ -116,6 +125,10 @@ def cirq2qasm(circuit):
 
 
 class QiskitSampler(cirq.Sampler):
+    """
+    A specialized version of cirq.Sampler for use with Qiskit backends.
+    """
+
     def __init__(
         self,
         backend,
@@ -175,13 +188,23 @@ class QiskitSampler(cirq.Sampler):
         repetitions: Union[int, Sequence[int]],
         params_list: Optional[Sequence["cirq.Sweepable"]] = None,
     ) -> Sequence[Sequence["cirq.Result"]]:
+        """This will evaluate results on a set of circuits with given parameters.
+        Args:
+            programs: Sequence of dircuits to evaluate.
+            repetitions: Sequence indicating the number of repetitions for each circuit.
+            Giving a single integer instead is interpreted as a constant sequence.
+            params_list: A sequence of `cirq.Sweepable`s of parameters which this function passes to
+                `cirq.protocols.resolve_parameters` for evaluating each circuit. Defaults to None.
+
+        Returns:
+            A list of lists of `cirq.Result` s.
+        """
+
         params_list, repetitions = self._normalize_batch_args(
             programs, params_list, repetitions
         )
 
-        abstract_circuits = [
-            program.unfreeze(copy=False) for program in programs
-        ]
+        abstract_circuits = [program.unfreeze(copy=False) for program in programs]
         resolvers = [list(cirq.to_resolvers(params)) for params in params_list]
         circuits = [
             cirq.protocols.resolve_parameters(abstract_circuit, resolver)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""A module to for running Cirq objects."""
+"""A module for running Cirq objects."""
 import numpy as np
 import cirq
 
@@ -46,29 +46,24 @@ class SampledExpectationBatch:
         )
 
     def collect(self, sampler):
+        """
+        Runs all circuits using the given sampler and collects the measured results.
+        """
         circuit_list = []
         for i, value in enumerate(self._circuits):
             circuit_list.append(
-                self.circuit_with_measurements(
-                    value, self._observables[i]
-                )
+                self.circuit_with_measurements(value, self._observables[i])
             )
-        results = sampler.run_batch(
-            circuit_list, repetitions=self._repetitions
-        )
+        results = sampler.run_batch(circuit_list, repetitions=self._repetitions)
         for i in range(len(self._circuits)):
             for j in range(len(self._observables[i])):
-                individual_result = self._convert_to_expectation(
-                    results[i], f"out_{j}"
-                )
+                individual_result = self._convert_to_expectation(results[i], f"out_{j}")
                 self._all_exp_vals[i][j] = individual_result
         return self._all_exp_vals
 
     @staticmethod
     def _convert_to_expectation(result, key):
-        parities = result.histogram(
-            key=key, fold_func=lambda bits: np.sum(bits) % 2
-        )
+        parities = result.histogram(key=key, fold_func=lambda bits: np.sum(bits) % 2)
         return (parities[0] - parities[1]) / (parities[0] + parities[1])
 
     @staticmethod
@@ -94,19 +89,14 @@ def _fixed_circuit_plus_pauli_string_measurements(circuit, pauli_string):
     # cirq 0.6. This is a workaround until fixed.
     # circuit.append(cirq.Moment(pauli_string.to_z_basis_ops()))
     circuit.append(cirq.Moment(cirq.decompose(pauli_string.to_z_basis_ops())))
-    circuit.append(
-        cirq.Moment([cirq.measure(*sorted(pauli_string.keys()), key="out")])
-    )
+    circuit.append(cirq.Moment([cirq.measure(*sorted(pauli_string.keys()), key="out")]))
     return circuit
 
 
 def _validate_inputs(circuits, param_resolvers, simulator, sim_type):
     """Type check and sanity check inputs."""
     if not isinstance(circuits, (list, tuple, np.ndarray)):
-        raise TypeError(
-            "circuits must be a list or array."
-            f" Given: {type(circuits)}"
-        )
+        raise TypeError("circuits must be a list or array." f" Given: {type(circuits)}")
 
     if any(not isinstance(x, cirq.Circuit) for x in circuits):
         raise TypeError("circuits must contain cirq.Circuit objects")
@@ -121,9 +111,7 @@ def _validate_inputs(circuits, param_resolvers, simulator, sim_type):
         raise TypeError("param_resolvers must contain cirq.ParamResolvers.")
 
     if not len(circuits) == len(param_resolvers):
-        raise ValueError(
-            "Circuit batch size does not match resolve batch size."
-        )
+        raise ValueError("Circuit batch size does not match resolve batch size.")
 
     if sim_type == "analytic":
         if not isinstance(simulator, cirq.SimulatesFinalState):
@@ -254,9 +242,7 @@ def batch_calculate_expectation(circuits, param_resolvers, ops, simulator):
         return np.zeros((0, 0), dtype=np.float32)
 
     if not isinstance(ops, (list, tuple, np.ndarray)):
-        raise TypeError(
-            "ops must be a list or array." f" Given: {type(ops)}"
-        )
+        raise TypeError("ops must be a list or array." f" Given: {type(ops)}")
 
     if len(ops) != len(circuits):
         raise ValueError("Shape of ops and circuits do not match.")
@@ -267,13 +253,10 @@ def batch_calculate_expectation(circuits, param_resolvers, ops, simulator):
         for x in sub_list:
             if not isinstance(x, cirq.PauliSum):
                 raise TypeError(
-                    "ops must contain only cirq.PauliSum objects."
-                    f" Given: {type(x)}"
+                    "ops must contain only cirq.PauliSum objects." f" Given: {type(x)}"
                 )
 
-    all_exp_vals = (
-        np.ones(shape=(len(circuits), len(ops[0])), dtype=np.float32) * -2
-    )
+    all_exp_vals = np.ones(shape=(len(circuits), len(ops[0])), dtype=np.float32) * -2
     for i, (c, p, op_row) in enumerate(zip(circuits, param_resolvers, ops)):
         # Convention in TFQ is to set expectations of empty circuits to -2.
         if len(c) == 0:
@@ -335,9 +318,7 @@ def batch_calculate_sampled_expectation(
         return np.zeros((0, 0), dtype=np.float32)
 
     if not isinstance(ops, (list, tuple, np.ndarray)):
-        raise TypeError(
-            "ops must be a list or array." f" Given: {type(ops)}"
-        )
+        raise TypeError("ops must be a list or array." f" Given: {type(ops)}")
 
     if len(ops) != len(circuits):
         raise ValueError("Shape of ops and circuits do not match.")
@@ -360,8 +341,7 @@ def batch_calculate_sampled_expectation(
         for x in sub_list:
             if not isinstance(x, cirq.PauliSum):
                 raise TypeError(
-                    "ops must contain only cirq.PauliSum objects."
-                    f" Given: {type(x)}"
+                    "ops must contain only cirq.PauliSum objects." f" Given: {type(x)}"
                 )
 
     circuit_list = []
@@ -417,9 +397,7 @@ def batch_sample(circuits, param_resolvers, n_samples, simulator):
         return np.zeros((0, 0, 0), dtype=np.int8)
 
     if not isinstance(n_samples, int):
-        raise TypeError(
-            "n_samples must be an int." f"Given: {type(n_samples)}"
-        )
+        raise TypeError("n_samples must be an int." f"Given: {type(n_samples)}")
 
     if n_samples <= 0:
         raise ValueError("n_samples must be > 0.")
