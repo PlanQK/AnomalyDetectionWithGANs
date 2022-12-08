@@ -7,8 +7,16 @@ import json
 
 
 class Response:
+    """
+    An interface class meant as a return object. It can hold the result of a calculation,
+    or an error, depending on its derived class.
+    """
+
     def to_json(self):
-        return json.dumps(self, default=lambda o: getattr(o, '__dict__', str(o)), sort_keys=True)
+        """Method converting the response object into a json string."""
+        return json.dumps(
+            self, default=lambda o: getattr(o, "__dict__", str(o)), sort_keys=True
+        )
 
 
 class ErrorResponse(Response):
