@@ -94,10 +94,10 @@ class QuantumDecoder(tf.keras.Model):
         qc_instance = getattr(quantumCircuits, quantum_circuit_type)(
             qubits, total_num_cycles
         )
-        circuit = qc_instance.buildCircuit()
+        circuit = qc_instance.build_circuit()
 
         # readout
-        readout = qc_instance.getReadOut()
+        readout = qc_instance.get_readout()
 
         if parameters["quantum_backend"] == "noiseless":
             backend = "noiseless"
