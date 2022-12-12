@@ -154,7 +154,7 @@ class QuantumDecoder(tf.keras.Model):
 
 
 class Classifier:
-    """Base class for the different Gan Classifiers."""
+    """GAN classifier class collecting the different models. Can be classical or quantum depending on parameter."""
 
     def __init__(self, data, parameters):
         """Instantiate all required models for the GANomalyNetwork."""
