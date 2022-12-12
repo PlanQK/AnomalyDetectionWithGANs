@@ -15,19 +15,14 @@ import pandas
 from libs.return_objects import Response, ResultResponse, ErrorResponse
 from libs.utilities import reformat_for_json, export_to_json
 
-from libs.gan_classifiers.GANomalyNetworks import (
-    ClassicalDenseClassifier,
-    QuantumDecoderClassifier,
-)
+from libs.gan_classifiers.GANomalyNetworks import Classifier
+
 
 from libs.gan_classifiers.Metrics import UnsupervisedMetric, SupervisedMetric
 from libs.gan_classifiers.Trainer import Trainer
 from libs.gan_classifiers.DataProcessor import SupervisedData, UnsupervisedData
 
-gan_backends = {
-    "classical": ClassicalDenseClassifier,
-    "quantum": QuantumDecoderClassifier,
-}
+
 
 
 def run(
@@ -71,7 +66,7 @@ def run(
 
         # Load parameters and set defaults
         assert (
-            params["method"] in gan_backends.keys()
+            params["method"] in ["classical", "quantum"]
         ), "No valid method parameter provided."
         assert params["train_or_predict"] in [
             "train",
@@ -84,7 +79,7 @@ def run(
         logger.info("Parameters loaded successfully.")
 
         # generate the network
-        classifier = gan_backends[params["method"]](data_values, params)
+        classifier = Classifier(data_values, params)
 
         if params["train_or_predict"] == "train":
             trainer = Trainer(data_values, classifier, metrics_object, params)
