@@ -36,12 +36,6 @@ class RandomCircuitBase:
             self.generate_cycle(i)
         return self.circuit
 
-    def generate_initial_parameters(self):
-        return (
-            (np.random.random([int(self.total_num_cycles), len(self.qubits)]) * 2 - 1)
-            * np.pi
-        ).flatten()
-
     def get_readout(self):
         """Returns a list containing a Pauli Z-gates on every qubit."""
         return [cirq.Z(q) for q in self.qubits]
@@ -134,27 +128,6 @@ class IdentityCircuitBase:
                 )
             bases.append(basis)
         return bases
-
-    def generate_initial_parameters(self):
-        starting_parameters = (
-            np.random.random([int(int(self.total_num_cycles) / 2), len(self.qubits)])
-            * 2
-            - 1
-        ) * np.pi
-        if int(self.total_num_cycles) == 1:
-            return np.zeros([1, len(self.qubits)]).flatten()
-        if int(self.total_num_cycles) % 2:
-            return np.concatenate(
-                (
-                    np.zeros((1, len(self.qubits))),
-                    starting_parameters,
-                    np.flip(-1 * starting_parameters, axis=0),
-                )
-            ).flatten()
-        else:
-            return np.concatenate(
-                (starting_parameters, np.flip(-1 * starting_parameters, axis=0))
-            ).flatten()
 
     def build_circuit(self):
         """Generate the circuit by generating its cycles and inverse cycles."""
@@ -264,29 +237,6 @@ class CompleteRotationCircuitIdentity(IdentityCircuitBase):
                 ]
             )
 
-    def generate_initial_parameters(self):
-        starting_parameters = (
-            np.random.random(
-                [3 * int(int(self.total_num_cycles) / 2), len(self.qubits)]
-            )
-            * 2
-            - 1
-        ) * np.pi
-        if int(self.total_num_cycles) == 1:
-            return np.zeros([3, len(self.qubits)]).flatten()
-        if int(self.total_num_cycles) % 2:
-            return np.concatenate(
-                (
-                    np.zeros([3, len(self.qubits)]),
-                    starting_parameters,
-                    np.flip(-1 * starting_parameters, axis=0),
-                )
-            ).flatten()
-        else:
-            return np.concatenate(
-                (starting_parameters, np.flip(-1 * starting_parameters, axis=0))
-            ).flatten()
-
 
 class CompleteRotationCircuitRandom(RandomCircuitBase):
     """Derived class of `RandomCircuitBase` involving rotations along all three axes for each set of entanglement gates."""
@@ -332,15 +282,6 @@ class CompleteRotationCircuitRandom(RandomCircuitBase):
                         self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
-
-    def generate_initial_parameters(self):
-        return (
-            (
-                np.random.random([int(self.total_num_cycles), 3 * len(self.qubits)]) * 2
-                - 1
-            )
-            * np.pi
-        ).flatten()
 
 
 class StrongEntanglementIdentity(IdentityCircuitBase):

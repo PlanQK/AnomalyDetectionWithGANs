@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__ + ".py")
 
 class Discriminator(tf.keras.Model):
     """The discriminator model of the GANomaly network. It is only implemented classically."""
+
     def __init__(self, num_features, parameters):
         disc_input = tf.keras.layers.Input(shape=(num_features), name="DiscInput")
         model = tf.keras.layers.Dense(num_features)(disc_input)
@@ -33,6 +34,7 @@ class Discriminator(tf.keras.Model):
 
 class Encoder(tf.keras.Model):
     """The encoder model of the GANomaly network. It is only implemented classically."""
+
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
         enc_input = tf.keras.layers.Input(shape=num_features, name="EncInput")
@@ -51,6 +53,7 @@ class Encoder(tf.keras.Model):
 
 class ClassicalDecoder(tf.keras.Model):
     """The classical version of the decoder used in the GANomaly network."""
+
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
         dec_input = tf.keras.layers.Input(shape=latent_dim, name="DecInput")
@@ -65,6 +68,7 @@ class ClassicalDecoder(tf.keras.Model):
         super().__init__(dec_input, model, name="Decoder")
         # only after super can we set member variables
         self.latent_dim = latent_dim
+
     def transform_z_to_z_quantum(self, z):
         """Dummy method returning its argument, method only needed for QuantumDecoder."""
         return z
@@ -164,11 +168,10 @@ class Classifier:
 
     def make_auto_decoder(self, parameters):
         """Returns either a classical or quantum decoder depending on the given parameter."""
-        if parameters['method'] == "classical":
+        if parameters["method"] == "classical":
             return ClassicalDecoder(self.num_features, parameters)
-        if parameters['method'] == "quantum":
+        if parameters["method"] == "quantum":
             return QuantumDecoder(self.num_features, parameters)
-
 
     def print_model_summaries(self):
         """
