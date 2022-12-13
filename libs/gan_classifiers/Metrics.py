@@ -30,8 +30,7 @@ class Metric:
         assert key in self.metrics, "Error: trying to update nonexistent metric"
         self.metrics[key] = value
 
-    @staticmethod
-    def _metrics_template():
+    def _metrics_template(self):
         """Creation function for an empty set of metrics"""
         return {
             "step_number": None,

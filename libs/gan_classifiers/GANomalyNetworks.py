@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__ + ".py")
 
 
 class Discriminator(tf.keras.Model):
+    """The discriminator model of the GANomaly network. It is only implemented classically."""
     def __init__(self, num_features, parameters):
         disc_input = tf.keras.layers.Input(shape=(num_features), name="DiscInput")
         model = tf.keras.layers.Dense(num_features)(disc_input)
@@ -31,6 +32,7 @@ class Discriminator(tf.keras.Model):
 
 
 class Encoder(tf.keras.Model):
+    """The encoder model of the GANomaly network. It is only implemented classically."""
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
         enc_input = tf.keras.layers.Input(shape=num_features, name="EncInput")
@@ -48,6 +50,7 @@ class Encoder(tf.keras.Model):
 
 
 class ClassicalDecoder(tf.keras.Model):
+    """The classical version of the decoder used in the GANomaly network."""
     def __init__(self, num_features, parameters):
         latent_dim = int(parameters["latent_dimensions"])
         dec_input = tf.keras.layers.Input(shape=latent_dim, name="DecInput")
@@ -63,21 +66,14 @@ class ClassicalDecoder(tf.keras.Model):
         # only after super can we set member variables
         self.latent_dim = latent_dim
     def transform_z_to_z_quantum(self, z):
+        """Dummy method returning its argument, method only needed for QuantumDecoder."""
         return z
 
 
 class QuantumDecoder(tf.keras.Model):
     """
-    backend_mapping = {
-        "noiseless": "noiseless",
-        "IBM - Aer": get_qiskit_sampler(
-            Aer.get_backend("statevector_simulator")
-        ),
-        #
-        # "IBM - Hardware": get_qiskit_sampler(
-        #    backend("Q4", "API KEY")
-        # )
-    }
+    The quantum version of the decoder used in the GANomaly network.
+    Uses either noiseless simulator, IBM Aer simulator or IBM hardware backend depending on parameters.
     """
 
     def __init__(self, num_features, parameters):
@@ -141,11 +137,12 @@ class QuantumDecoder(tf.keras.Model):
         self.total_num_cycles = total_num_cycles
 
     def transform_z_to_z_quantum(self, z):
+        """Tranforms the argument into the required tensor format."""
         z_np = z.numpy()
         result = []
-        for pair in enumerate(z_np):
+        for i, value in enumerate(z_np):
             circuit = cirq.Circuit()
-            transformed_inputs = 2 * numpy.arcsin(pair[1])
+            transformed_inputs = 2 * numpy.arcsin(value)
             for j in range(int(self.latent_dim)):
                 circuit.append(cirq.rx(transformed_inputs[j]).on(self.qubits[j]))
             result.append(circuit)
@@ -209,10 +206,17 @@ class Classifier:
         self.discriminator.set_weights(weights_discriminator)
 
     def transform_z_to_z_quantum(self, z):
+        """If using a quantum decoder, transforms the argument into the required tensor format.
+        Otherwise, the argument is returned unchanged
+        """
         # only needed for quantum network
         return self.auto_decoder.transform_z_to_z_quantum(z)
 
     def predict(self, x):
+        """Central function for anomaly detection, returns the mean absolute error
+        between encoded versions of both the argument and a generated sample based
+        on the argument.
+        """
         mae = tf.keras.losses.MeanAbsoluteError(
             reduction=tf.keras.losses.Reduction.NONE
         )
@@ -223,6 +227,7 @@ class Classifier:
         return mae(z, z_hat_normal)
 
     def generate(self, x):
+        """Using the generator part of GANomaly, generates a sample based on the argument."""
         z = self.auto_encoder(x, training=False)
         z_quantum = self.transform_z_to_z_quantum(z)
         return self.auto_decoder(z_quantum, training=False)
