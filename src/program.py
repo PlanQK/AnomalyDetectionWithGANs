@@ -54,12 +54,12 @@ def run(
         # Process data & load metrics
         if params["is_supervised"]:
             data_values = SupervisedData(
-                pandas.DataFrame(data["values"], dtype="float64"), params
+                pandas.DataFrame(data["values"], dtype="float64")
             )
             metrics_object = SupervisedMetric(data_values, params)
         else:
             data_values = UnsupervisedData(
-                pandas.DataFrame(data["values"], dtype="float64"), params
+                pandas.DataFrame(data["values"], dtype="float64")
             )
             metrics_object = UnsupervisedMetric(data_values, params)
         logger.info("Data loaded successfully.")
