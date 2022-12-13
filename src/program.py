@@ -15,36 +15,20 @@ import pandas
 from libs.return_objects import Response, ResultResponse, ErrorResponse
 from libs.utilities import reformat_for_json, export_to_json
 
-from libs.gan_classifiers.GANomalyNetworks import (
-    ClassicalDenseClassifier,
-    QuantumDecoderClassifier,
-)
+from libs.gan_classifiers.GANomalyNetworks import Classifier
+
 
 from libs.gan_classifiers.Metrics import UnsupervisedMetric, SupervisedMetric
 from libs.gan_classifiers.Trainer import Trainer
 from libs.gan_classifiers.DataProcessor import SupervisedData, UnsupervisedData
 
-gan_backends = {
-    "classical": ClassicalDenseClassifier,
-    "quantum": QuantumDecoderClassifier,
-}
+
 
 
 def run(
     data: Optional[Dict[str, Any]] = None,
     params: Optional[Dict[str, Any]] = None,
 ) -> Response:
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    fh = logging.FileHandler("log.log", mode="w")
-    fh.setFormatter(
-        logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-    )
-    logger.addHandler(fh)
     """
     Default entry point of your code. Start coding here!
 
@@ -57,23 +41,32 @@ def run(
         response: (ResultResponse | ErrorResponse): Response as arbitrary json-serializable dict or an error to be
         passed back to the client
     """
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    fh = logging.FileHandler("log.log", mode="w")
+    fh.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    logger.addHandler(fh)
+
     try:
         # Process data & load metrics
         if params["is_supervised"]:
             data_values = SupervisedData(
-                pandas.DataFrame(data["values"], dtype="float64"), params
+                pandas.DataFrame(data["values"], dtype="float64")
             )
             metrics_object = SupervisedMetric(data_values, params)
         else:
             data_values = UnsupervisedData(
-                pandas.DataFrame(data["values"], dtype="float64"), params
+                pandas.DataFrame(data["values"], dtype="float64")
             )
             metrics_object = UnsupervisedMetric(data_values, params)
         logger.info("Data loaded successfully.")
 
         # Load parameters and set defaults
         assert (
-            params["method"] in gan_backends.keys()
+            params["method"] in ["classical", "quantum"]
         ), "No valid method parameter provided."
         assert params["train_or_predict"] in [
             "train",
@@ -86,13 +79,13 @@ def run(
         logger.info("Parameters loaded successfully.")
 
         # generate the network
-        classifier = gan_backends[params["method"]](data_values, params)
+        classifier = Classifier(data_values, params)
 
         if params["train_or_predict"] == "train":
             trainer = Trainer(data_values, classifier, metrics_object, params)
-            classifierWeights = trainer.train()
-            output = metrics_object.getLastMetrics()
-            output["trained_model"] = classifierWeights
+            classifier_weights = trainer.train()
+            output = metrics_object.get_last_metrics()
+            output["trained_model"] = classifier_weights
             output = reformat_for_json(output)
             export_to_json(output, "response_training.json")
             logger.info("Training of the GAN classifier has ended")
@@ -110,7 +103,7 @@ def run(
             return ResultResponse(result=output)
     except Exception as e:
         logger.error(
-            "An error occured while processing. Error reads:"
-            "\n" + traceback.format_exc()
+            "An error occured while processing. Error reads: \n %s",
+            traceback.format_exc(),
         )
         return ErrorResponse(code="500", detail=f"{type(e).__name__}: {e}")

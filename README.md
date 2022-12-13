@@ -114,7 +114,7 @@ The following values are possible:
     LittleEntanglementIdentity
     LittleEntanglementRandom
     SemiClassicalIdentity
-   SemiClassicalRandom
+    SemiClassicalRandom
 ```
 
 

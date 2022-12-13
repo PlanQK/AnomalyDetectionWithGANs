@@ -1,97 +1,97 @@
-import numpy as np
+"""
+This file contains classes providing the quantum circuits used for the GANomaly model.
+"""
 import math
+import numpy as np
 import sympy
 import cirq
 
 
 class RandomCircuitBase:
-    def __init__(self, qubits, totalNumCycles=3):
+    """Base class for different Parametrized circuits based on a random initialization."""
+
+    def __init__(self, qubits, total_num_cycles=3):
         self.qubits = qubits
         self.circuit = cirq.Circuit()
-        self.totalNumCycles = int(totalNumCycles)
+        self.total_num_cycles = int(total_num_cycles)
         self.num_qubits = len(self.qubits)
 
         self.bases = np.random.choice(
             [cirq.rx, cirq.ry, cirq.rz],
-            int(totalNumCycles) * int(self.num_qubits),
+            int(total_num_cycles) * int(self.num_qubits),
         )
-        self.bases = self.bases.reshape(
-            int(totalNumCycles), int(self.num_qubits)
-        )
-        numVariables = int(self.num_qubits) * int(totalNumCycles)
-        self.controlParams = np.array(
-            [sympy.Symbol(f"w{i}") for i in range(numVariables)]
+        self.bases = self.bases.reshape(int(total_num_cycles), int(self.num_qubits))
+        num_variables = int(self.num_qubits) * int(total_num_cycles)
+        self.control_params = np.array(
+            [sympy.Symbol(f"w{i}") for i in range(num_variables)]
         )
 
-        self.controlParams = self.controlParams.reshape(
-            int(totalNumCycles), int(self.num_qubits)
+        self.control_params = self.control_params.reshape(
+            int(total_num_cycles), int(self.num_qubits)
         )
 
-    def buildCircuit(self):
-        for i in range(int(self.totalNumCycles)):
-            self.generateCycle(i)
+    def build_circuit(self):
+        """Constructs the circuit by generating all its cycles."""
+        for i in range(int(self.total_num_cycles)):
+            self.generate_cycle(i)
         return self.circuit
 
-    def generateInitialParameters(self):
-        return (
-            (
-                np.random.random([int(self.totalNumCycles), len(self.qubits)])
-                * 2
-                - 1
-            )
-            * np.pi
-        ).flatten()
-
-    def getReadOut(self):
+    def get_readout(self):
+        """Returns a list containing a Pauli Z-gates on every qubit."""
         return [cirq.Z(q) for q in self.qubits]
 
-    def generateCycle(self):
+    def generate_cycle(self, cycle_pos):
+        """Generates the cycle of the circuit with the specified position."""
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
 
 
 class IdentityCircuitBase:
-    """Base class for the different Parametrized circuits. Derive this class to
-    write your own specialized circuit.
+    """Base class for the different Parametrized circuits using identity blocks (arXiv:1903.05076).
+    Derive this class to write your own specialized circuit.
     """
 
-    def __init__(self, qubits, totalNumCycles=3):
+    def __init__(self, qubits, total_num_cycles=3):
         self.qubits = qubits
         self.circuit = cirq.Circuit()
-        self.totalNumCycles = int(totalNumCycles)
+        self.total_num_cycles = int(total_num_cycles)
         self.num_qubits = len(self.qubits)
         self.bases = np.random.choice(
             [cirq.rx, cirq.ry, cirq.rz],
-            int(math.ceil(int(totalNumCycles) / 2) * int(self.num_qubits)),
+            int(math.ceil(int(total_num_cycles) / 2) * int(self.num_qubits)),
         )
         self.bases = self.bases.reshape(
-            int(math.ceil(int(totalNumCycles) / 2)), int(self.num_qubits)
+            int(math.ceil(int(total_num_cycles) / 2)), int(self.num_qubits)
         )
 
-        numVariables = int(self.num_qubits) * int(totalNumCycles)
+        num_variables = int(self.num_qubits) * int(total_num_cycles)
 
-        self.controlParams = np.array(
-            [sympy.Symbol(f"w{i}") for i in range(numVariables)]
+        self.control_params = np.array(
+            [sympy.Symbol(f"w{i}") for i in range(num_variables)]
         )
-        self.controlParams = self.controlParams.reshape(
-            int(totalNumCycles), int(self.num_qubits)
+        self.control_params = self.control_params.reshape(
+            int(total_num_cycles), int(self.num_qubits)
         )
 
-    def generateCycle(self):
+    def generate_cycle(self, cycle_pos):
+        """Generates the cycle of the circuit with the specified position."""
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
 
-    def generateInvCycle(self):
+    def generate_inv_cycle(self, cycle_pos):
+        """Generates the inverse cycle for the specified position."""
         raise NotImplementedError(
             "This is the base class. You need to specialize this function"
         )
 
-    def getReadOut(self):
+    def get_readout(self):
+        """Returns a list containing a Pauli Z-gates on every qubit."""
         return [cirq.Z(q) for q in self.qubits]
 
-    def setBases(self, bases):
+    def set_bases(self, bases):
+        """Sets the bases of the circuit from a provided string."""
         assert len(bases) == len(self.bases.flatten())
         self.bases = []
         for element in bases:
@@ -108,17 +108,18 @@ class IdentityCircuitBase:
             self.bases.append(basis)
         self.bases = np.array(self.bases)
         self.bases = self.bases.reshape(
-            int(math.ceil(int(self.totalNumCycles) / 2)), int(self.num_qubits)
+            int(math.ceil(int(self.total_num_cycles) / 2)), int(self.num_qubits)
         )
 
-    def getBases(self):
+    def get_bases(self):
+        """Returns the bases of the circuit encoded in a string."""
         bases = []
         for element in self.bases.flatten():
-            if element == cirq.rx:
+            if element is cirq.rx:
                 basis = "X"
-            elif element == cirq.ry:
+            elif element is cirq.ry:
                 basis = "Y"
-            elif element == cirq.rz:
+            elif element is cirq.rz:
                 basis = "Z"
             else:
                 raise ValueError(
@@ -128,426 +129,389 @@ class IdentityCircuitBase:
             bases.append(basis)
         return bases
 
-    def generateInitialParameters(self):
-        startingParameters = (
-            np.random.random(
-                [int(int(self.totalNumCycles) / 2), len(self.qubits)]
-            )
-            * 2
-            - 1
-        ) * np.pi
-        if int(self.totalNumCycles) == 1:
-            return np.zeros([1, len(self.qubits)]).flatten()
-        if int(self.totalNumCycles) % 2:
-            return np.concatenate(
-                (
-                    np.zeros((1, len(self.qubits))),
-                    startingParameters,
-                    np.flip(-1 * startingParameters, axis=0),
-                )
-            ).flatten()
-        else:
-            return np.concatenate(
-                (startingParameters, np.flip(-1 * startingParameters, axis=0))
-            ).flatten()
-
-    def buildCircuit(self):
+    def build_circuit(self):
+        """Generate the circuit by generating its cycles and inverse cycles."""
         # if odd then number of cycles then add an empty layer at the front
-        if int(self.totalNumCycles) % 2:
-            self.generateCycle(-1)
+        if int(self.total_num_cycles) % 2:
+            self.generate_cycle(-1)
 
-        for i in range(int(int(self.totalNumCycles) / 2)):
-            self.generateCycle(i)
+        for i in range(int(int(self.total_num_cycles) / 2)):
+            self.generate_cycle(i)
 
-        for i in range(int(int(self.totalNumCycles) / 2)):
-            self.generateInvCycle(i)
+        for i in range(int(int(self.total_num_cycles) / 2)):
+            self.generate_inv_cycle(i)
         return self.circuit
 
 
 class CompleteRotationCircuitIdentity(IdentityCircuitBase):
+    """Derived class of `IdentityCircuitBase` involving rotations along all three axes for each set of entanglement gates."""
+
     def __init__(self, qubits, totalNumCycles=3):
-        super().__init__(qubits, totalNumCycles=totalNumCycles)
-        self.controlParams = np.array(
+        super().__init__(qubits, total_num_cycles=totalNumCycles)
+        self.control_params = np.array(
             [
                 sympy.Symbol(f"w{i}")
                 for i in range(3 * int(self.num_qubits) * int(totalNumCycles))
             ]
         )
-        self.controlParams = self.controlParams.reshape(
+        self.control_params = self.control_params.reshape(
             3 * int(totalNumCycles), int(self.num_qubits)
         )
 
-    def generateCycle(self, cyclePos):
+    def generate_cycle(self, cycle_pos):
         add = 0
-        if int(self.totalNumCycles) % 2:
+        if int(self.total_num_cycles) % 2:
             add = 1
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
                 [
-                    cirq.rx(
-                        self.controlParams[3 * (cyclePos + add)][qubitID]
-                    ).on(self.qubits[qubitID]),
+                    cirq.rx(self.control_params[3 * (cycle_pos + add)][qubit_id]).on(
+                        qubit
+                    ),
                     cirq.ry(
-                        self.controlParams[3 * (cyclePos + add) + 1][qubitID]
-                    ).on(self.qubits[qubitID]),
+                        self.control_params[3 * (cycle_pos + add) + 1][qubit_id]
+                    ).on(qubit),
                     cirq.rz(
-                        self.controlParams[3 * (cyclePos + add) + 2][qubitID]
-                    ).on(self.qubits[qubitID]),
+                        self.control_params[3 * (cycle_pos + add) + 2][qubit_id]
+                    ).on(qubit),
                 ]
             )
         # layer of entangling gates
-        if cyclePos == int(int(self.totalNumCycles) / 2) - 1:
+        if cycle_pos == int(int(self.total_num_cycles) / 2) - 1:
             return
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 0:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 0:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 1:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 1:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
 
-    def generateInvCycle(self, cyclePos):
+    def generate_inv_cycle(self, cycle_pos):
         # layer of entangling gates
-        if cyclePos != 0:
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 0:
+        if cycle_pos != 0:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 0:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 1:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 1:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
 
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
                 [
                     cirq.rz(
-                        self.controlParams[
-                            3 * (int(self.totalNumCycles) - cyclePos) - 1
-                        ][qubitID]
-                    ).on(self.qubits[qubitID]),
+                        self.control_params[
+                            3 * (int(self.total_num_cycles) - cycle_pos) - 1
+                        ][qubit_id]
+                    ).on(qubit),
                     cirq.ry(
-                        self.controlParams[
-                            3 * (int(self.totalNumCycles) - cyclePos) - 2
-                        ][qubitID]
-                    ).on(self.qubits[qubitID]),
+                        self.control_params[
+                            3 * (int(self.total_num_cycles) - cycle_pos) - 2
+                        ][qubit_id]
+                    ).on(qubit),
                     cirq.rx(
-                        self.controlParams[
-                            3 * (int(self.totalNumCycles) - cyclePos) - 3
-                        ][qubitID]
-                    ).on(self.qubits[qubitID]),
+                        self.control_params[
+                            3 * (int(self.total_num_cycles) - cycle_pos) - 3
+                        ][qubit_id]
+                    ).on(qubit),
                 ]
             )
-
-    def generateInitialParameters(self):
-        startingParameters = (
-            np.random.random(
-                [3 * int(int(self.totalNumCycles) / 2), len(self.qubits)]
-            )
-            * 2
-            - 1
-        ) * np.pi
-        if int(self.totalNumCycles) == 1:
-            return np.zeros([3, len(self.qubits)]).flatten()
-        if int(self.totalNumCycles) % 2:
-            return np.concatenate(
-                (
-                    np.zeros([3, len(self.qubits)]),
-                    startingParameters,
-                    np.flip(-1 * startingParameters, axis=0),
-                )
-            ).flatten()
-        else:
-            return np.concatenate(
-                (startingParameters, np.flip(-1 * startingParameters, axis=0))
-            ).flatten()
 
 
 class CompleteRotationCircuitRandom(RandomCircuitBase):
+    """Derived class of `RandomCircuitBase` involving rotations along all three axes for each set of entanglement gates."""
+
     def __init__(self, qubits, totalNumCycles=3):
-        super().__init__(qubits, totalNumCycles=totalNumCycles)
-        self.controlParams = np.array(
+        super().__init__(qubits, total_num_cycles=totalNumCycles)
+        self.control_params = np.array(
             [
                 sympy.Symbol(f"w{i}")
                 for i in range(3 * int(self.num_qubits) * int(totalNumCycles))
             ]
         )
-        self.controlParams = self.controlParams.reshape(
+        self.control_params = self.control_params.reshape(
             3 * int(totalNumCycles), int(self.num_qubits)
         )
 
-    def generateCycle(self, cyclePos):
-        for qubitID in range(len(self.qubits)):
+    def generate_cycle(self, cycle_pos):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
                 [
-                    cirq.rx(self.controlParams[3 * (cyclePos)][qubitID]).on(
-                        self.qubits[qubitID]
+                    cirq.rx(self.control_params[3 * (cycle_pos)][qubit_id]).on(qubit),
+                    cirq.ry(self.control_params[3 * (cycle_pos) + 1][qubit_id]).on(
+                        qubit
                     ),
-                    cirq.ry(
-                        self.controlParams[3 * (cyclePos) + 1][qubitID]
-                    ).on(self.qubits[qubitID]),
-                    cirq.rz(
-                        self.controlParams[3 * (cyclePos) + 2][qubitID]
-                    ).on(self.qubits[qubitID]),
+                    cirq.rz(self.control_params[3 * (cycle_pos) + 2][qubit_id]).on(
+                        qubit
+                    ),
                 ]
             )
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 0:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 0:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 1:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 1:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
-
-    def generateInitialParameters(self):
-        return (
-            (
-                np.random.random(
-                    [int(self.totalNumCycles), 3 * len(self.qubits)]
-                )
-                * 2
-                - 1
-            )
-            * np.pi
-        ).flatten()
 
 
 class StrongEntanglementIdentity(IdentityCircuitBase):
-    def generateCycle(self, cyclePos):
+    """Derived class of `IdentityCircuitBase` involving rotations along a specified axis
+    before each layer of entanglement gates."""
+
+    def generate_cycle(self, cycle_pos):
         add = 0
-        if int(self.totalNumCycles) % 2:
+        if int(self.total_num_cycles) % 2:
             add = 1
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[cyclePos + add][qubitID](
-                    self.controlParams[cyclePos + add][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[cycle_pos + add][qubit_id](
+                    self.control_params[cycle_pos + add][qubit_id]
+                ).on(qubit)
             )  # layer of entangling gates
-        if cyclePos == int(int(self.totalNumCycles) / 2) - 1:
+        if cycle_pos == int(int(self.total_num_cycles) / 2) - 1:
             return
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 0:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 0:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 1:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 1:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
 
-    def generateInvCycle(self, cyclePos):
+    def generate_inv_cycle(self, cycle_pos):
         # layer of entangling gates
-        if cyclePos != 0:
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 0:
+        if cycle_pos != 0:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 0:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 1:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 1:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
 
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[len(self.bases) - cyclePos - 1][qubitID](
-                    self.controlParams[
-                        int(self.totalNumCycles) - cyclePos - 1
-                    ][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[len(self.bases) - cycle_pos - 1][qubit_id](
+                    self.control_params[int(self.total_num_cycles) - cycle_pos - 1][
+                        qubit_id
+                    ]
+                ).on(qubit)
             )
 
 
 class StrongEntanglementRandom(RandomCircuitBase):
-    def generateCycle(self, cyclePos):
-        for qubitID in range(len(self.qubits)):
+    """Derived class of `RandomCircuitBase` involving rotations along a specified axis
+    before each layer of entanglement gates."""
+
+    def generate_cycle(self, cycle_pos):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[cyclePos][qubitID](
-                    self.controlParams[cyclePos][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[cycle_pos][qubit_id](
+                    self.control_params[cycle_pos][qubit_id]
+                ).on(qubit)
             )  # layer of entangling gates
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 0:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 0:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
-        for qubitID in range(len(self.qubits)):
-            if qubitID % 2 == 1:
+        for qubit_id, qubit in enumerate(self.qubits):
+            if qubit_id % 2 == 1:
                 self.circuit.append(
                     cirq.CZ(
-                        self.qubits[qubitID],
-                        self.qubits[(qubitID + 1) % len(self.qubits)],
+                        qubit,
+                        self.qubits[(qubit_id + 1) % len(self.qubits)],
                     )
                 )
 
 
 class LittleEntanglementIdentity(IdentityCircuitBase):
-    def generateCycle(self, cyclePos):
+    """Derived class of `IdentityCircuitBase` involving rotations along a specified axis
+    with the layers of entanglement gates split in half."""
+
+    def generate_cycle(self, cycle_pos):
         add = 0
-        if int(self.totalNumCycles) % 2:
+        if int(self.total_num_cycles) % 2:
             add = 1
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[cyclePos + add][qubitID](
-                    self.controlParams[cyclePos + add][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[cycle_pos + add][qubit_id](
+                    self.control_params[cycle_pos + add][qubit_id]
+                ).on(qubit)
             )
         # layer of entangling gates
         # last one does not need entangling gates as they cancel the inverted
-        if cyclePos == int(int(self.totalNumCycles) / 2) - 1:
+        if cycle_pos == int(int(self.total_num_cycles) / 2) - 1:
             return
-        if cyclePos % 2:
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 0:
+        if cycle_pos % 2:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 0:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
         else:
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 1:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 1:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
 
-    def generateInvCycle(self, cyclePos):
+    def generate_inv_cycle(self, cycle_pos):
         # layer of entangling gates
-        if cyclePos != 0:
-            if cyclePos % 2:
-                for qubitID in range(len(self.qubits)):
-                    if qubitID % 2 == 0:
+        if cycle_pos != 0:
+            if cycle_pos % 2:
+                for qubit_id, qubit in enumerate(self.qubits):
+                    if qubit_id % 2 == 0:
                         self.circuit.append(
                             cirq.CZ(
-                                self.qubits[qubitID],
-                                self.qubits[(qubitID + 1) % len(self.qubits)],
+                                qubit,
+                                self.qubits[(qubit_id + 1) % len(self.qubits)],
                             )
                         )
             else:
-                for qubitID in range(len(self.qubits)):
-                    if qubitID % 2 == 1:
+                for qubit_id, qubit in enumerate(self.qubits):
+                    if qubit_id % 2 == 1:
                         self.circuit.append(
                             cirq.CZ(
-                                self.qubits[qubitID],
-                                self.qubits[(qubitID + 1) % len(self.qubits)],
+                                qubit,
+                                self.qubits[(qubit_id + 1) % len(self.qubits)],
                             )
                         )
 
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[len(self.bases) - cyclePos - 1][qubitID](
-                    self.controlParams[
-                        int(self.totalNumCycles) - cyclePos - 1
-                    ][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[len(self.bases) - cycle_pos - 1][qubit_id](
+                    self.control_params[int(self.total_num_cycles) - cycle_pos - 1][
+                        qubit_id
+                    ]
+                ).on(qubit)
             )
 
 
 class LittleEntanglementRandom(RandomCircuitBase):
-    def generateCycle(self, cyclePos):
-        for qubitID in range(len(self.qubits)):
+    """Derived class of `RandomCircuitBase` involving rotations along a specified axis
+    with the layers of entanglement gates split in half."""
+
+    def generate_cycle(self, cycle_pos):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[cyclePos][qubitID](
-                    self.controlParams[cyclePos][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[cycle_pos][qubit_id](
+                    self.control_params[cycle_pos][qubit_id]
+                ).on(qubit)
             )
         # layer of entangling gates
         # last one does not need entangling gates as they cancel the inverted
-        if cyclePos % 2:
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 0:
+        if cycle_pos % 2:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 0:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
         else:
-            for qubitID in range(len(self.qubits)):
-                if qubitID % 2 == 1:
+            for qubit_id, qubit in enumerate(self.qubits):
+                if qubit_id % 2 == 1:
                     self.circuit.append(
                         cirq.CZ(
-                            self.qubits[qubitID],
-                            self.qubits[(qubitID + 1) % len(self.qubits)],
+                            qubit,
+                            self.qubits[(qubit_id + 1) % len(self.qubits)],
                         )
                     )
 
 
 class SemiClassicalIdentity(IdentityCircuitBase):
-    def generateCycle(self, cyclePos):
+    """Derived class of `IdentityCircuitBase` involving rotations along a specified axis
+    without entanglement layers."""
+
+    def generate_cycle(self, cycle_pos):
         add = 0
-        if int(self.totalNumCycles) % 2:
+        if int(self.total_num_cycles) % 2:
             add = 1
-        for qubitID in range(len(self.qubits)):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[cyclePos + add][qubitID](
-                    self.controlParams[cyclePos + add][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[cycle_pos + add][qubit_id](
+                    self.control_params[cycle_pos + add][qubit_id]
+                ).on(qubit)
             )
 
-    def generateInvCycle(self, cyclePos):
-        for qubitID in range(len(self.qubits)):
+    def generate_inv_cycle(self, cycle_pos):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[len(self.bases) - cyclePos - 1][qubitID](
-                    self.controlParams[
-                        int(self.totalNumCycles) - cyclePos - 1
-                    ][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[len(self.bases) - cycle_pos - 1][qubit_id](
+                    self.control_params[int(self.total_num_cycles) - cycle_pos - 1][
+                        qubit_id
+                    ]
+                ).on(qubit)
             )
 
 
 class SemiClassicalRandom(RandomCircuitBase):
-    def generateCycle(self, cyclePos):
-        for qubitID in range(len(self.qubits)):
+    """Derived class of `RandomCircuitBase` involving rotations along a specified axis
+    without entanglement layers."""
+
+    def generate_cycle(self, cycle_pos):
+        for qubit_id, qubit in enumerate(self.qubits):
             self.circuit.append(
-                self.bases[cyclePos][qubitID](
-                    self.controlParams[cyclePos][qubitID]
-                ).on(self.qubits[qubitID])
+                self.bases[cycle_pos][qubit_id](
+                    self.control_params[cycle_pos][qubit_id]
+                ).on(qubit)
             )
